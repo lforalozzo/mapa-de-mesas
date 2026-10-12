@@ -1,0 +1,12 @@
+# Nunca versionar dados de convidados (backups e planilhas pessoais)
+*backup*.json
+*.xlsx
+*.xls
+*.ods
+*.csv
+encontre-sua-mesa.html
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/

@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mapa de Mesas</title>
+<meta name="description" content="Organize os convidados do casamento nas mesas do salão. Gratuito, funciona offline e os dados ficam só no seu navegador.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 16 16"><path d="M5.5 4 2.5 7l3 3"/><path d="M2.5 7H10a3.5 3.5 0 0 1 0 7H8"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 16 16"><path d="m10.5 4 3 3-3 3"/><path d="M13.5 7H6a3.5 3.5 0 0 0 0 7h2"/></symbol>
+    <symbol id="i-chev-down" viewBox="0 0 16 16"><path d="m4.5 6 3.5 3.5L11.5 6"/></symbol>
+    <symbol id="i-chev-right" viewBox="0 0 16 16"><path d="m6 4 4 4-4 4"/></symbol>
+    <symbol id="i-chev-left" viewBox="0 0 16 16"><path d="m10 4-4 4 4 4"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6 11 5M5 11l-1.4 1.4"/></symbol>
+    <symbol id="i-help" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4"/><path d="M8 11.4v.1"/></symbol>
+    <symbol id="i-download" viewBox="0 0 16 16"><path d="M8 2v8m0 0 3-3m-3 3L5 7M3 12v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 16 16"><path d="M8 10V2m0 0L5 5m3-3 3 3M3 12v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></symbol>
+    <symbol id="i-print" viewBox="0 0 16 16"><path d="M4 6V2h8v4M4 12H2V6h12v6h-2m-8-2h8v4H4v-4Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.3"/><path d="m10.2 10.2 3.3 3.3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 16 16"><path d="m11.3 2.7 2 2L6 12l-2.8.8L4 10l7.3-7.3Z"/><path d="M9.5 4.5l2 2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M5 4.5 5.6 13h4.8l.6-8.5M6.8 7v3.7M9.2 7v3.7"/></symbol>
+    <symbol id="i-round" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.8"/><path d="M8 1.7v.1M8 14.2v.1M1.7 8h.1M14.2 8h.1M3.5 3.5l.1.1M12.4 12.4l.1.1M12.5 3.5l-.1.1M3.6 12.4l-.1.1"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 16 16"><rect x="2" y="5.5" width="12" height="5" rx="1"/><path d="M4.5 3.2v.1M8 3.2v.1M11.5 3.2v.1M4.5 12.7v.1M8 12.7v.1M11.5 12.7v.1"/></symbol>
+    <symbol id="i-square" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" rx="1"/><path d="M8 1.8v.1M8 14.1v.1M1.8 8h.1M14.1 8h.1"/></symbol>
+    <symbol id="i-oval" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="5.3" ry="3.2"/><path d="M8 2.4v.1M8 13.5v.1M1.3 8h.1M14.6 8h.1"/></symbol>
+    <symbol id="i-many" viewBox="0 0 16 16"><circle cx="4.5" cy="4.5" r="2"/><circle cx="11.5" cy="4.5" r="2"/><circle cx="4.5" cy="11.5" r="2"/><circle cx="11.5" cy="11.5" r="2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 16 16"><path d="M2.5 2.5h11v11h-11zM6.2 2.5v11M9.8 2.5v11M2.5 6.2h11M2.5 9.8h11"/></symbol>
+    <symbol id="i-area" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5" stroke-dasharray="2 2"/></symbol>
+    <symbol id="i-text" viewBox="0 0 16 16"><path d="M3 4.5V3h10v1.5M8 3v10M6 13h4"/></symbol>
+    <symbol id="i-image" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 12 3.5-3.5 2.5 2.5 2-2 3 3"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.6"/><path d="M13 2.5v3h-3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 16 16"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M3 10.5V3.8a1.3 1.3 0 0 1 1.3-1.3h6.2"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 16 16"><path d="M6 2H2v4m8-4h4v4M6 14H2v-4m8 4h4v-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="m3 8.5 3 3 7-7"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 16 16"><path d="M3.6 2.5h2.1l1 2.6-1.4 1a7.4 7.4 0 0 0 3.6 3.6l1-1.4 2.6 1v2.1a1.1 1.1 0 0 1-1.2 1.1A10.8 10.8 0 0 1 2.5 3.7a1.1 1.1 0 0 1 1.1-1.2Z"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 16 16"><path d="M2.6 13.4 3.5 11a5.5 5.5 0 1 1 2.2 1.7Z"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 16 16"><path d="M2.5 13.5 9 7"/><path d="m10 2.5.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6Z"/><path d="M13 9.5v2.5M11.8 10.8h2.5"/></symbol>
+    <symbol id="i-panel-l" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M6 2.5v11"/></symbol>
+    <symbol id="i-panel-r" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M10 2.5v11"/></symbol>
+    <symbol id="i-users" viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13.5a4 4 0 0 1 8 0"/><path d="M10.5 3.4a2.3 2.3 0 0 1 0 4.3M12 9.6a4 4 0 0 1 2 3.9"/></symbol>
+    <symbol id="i-file" viewBox="0 0 16 16"><path d="M4 1.8h5.2L12.5 5v9.2H4Z"/><path d="M9 1.8V5h3.5"/></symbol>
+    <symbol id="i-sheet" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 6h12M2 9.5h12M6.5 6v7.5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 16 16"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></symbol>
+    <symbol id="i-more" viewBox="0 0 16 16"><path d="M3.5 8h.1M8 8h.1M12.5 8h.1" stroke-width="2.6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5 1.8v2.4M11 1.8v2.4"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 16 16"><path d="M3 5.5h9.5L10 3M13 10.5H3.5L6 13"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 16 16"><path d="M2 4.5v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H8L6.5 3.5H3a1 1 0 0 0-1 1Z"/></symbol>
+    <symbol id="i-seat" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="1.6"/></symbol>
+    <symbol id="i-unseat" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 0 0 12c.8 0 1.2-.6 1-1.3-.3-.9.3-1.7 1.2-1.7H12a2 2 0 0 0 2-2A6 6 0 0 0 8 2Z"/><circle cx="5" cy="7.5" r=".6"/><circle cx="7.5" cy="5" r=".6"/><circle cx="10.5" cy="5.5" r=".6"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 16 16"><path d="M2.5 2.5h5l6 6-5 5-6-6Z"/><circle cx="5.3" cy="5.3" r=".8"/></symbol>
+    <symbol id="i-bulk" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5.5 8 2 2 3-4"/></symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app">
+  <header class="appbar">
+    <button class="brand" id="brand" type="button" data-tip="Nomes, data, local e aparência do evento">
+      <span class="brand-title" id="brandTitle">Mapa de Mesas</span>
+      <span class="brand-sub" id="brandSub"></span>
+    </button>
+    <nav class="seg vtabs" id="vTabs" aria-label="Visualização">
+      <button type="button" data-v="salao" class="on">Salão</button>
+      <button type="button" data-v="lista">Convidados</button>
+      <button type="button" data-v="resumo">Resumo</button>
+    </nav>
+    <button class="progress-block" id="progress" type="button" data-tip="Ver o resumo completo">
+      <span class="progress-label"><span id="pgText"></span><b class="num" id="pgPct"></b></span>
+      <span class="pgbar"><span class="fill" id="pgFill"></span></span>
+    </button>
+    <div class="actions">
+      <button class="iconbtn" id="btnUndo" type="button" aria-label="Desfazer" data-tip="Desfazer" data-kbd="Ctrl+Z"><svg class="ic"><use href="#i-undo"/></svg></button>
+      <button class="iconbtn" id="btnRedo" type="button" aria-label="Refazer" data-tip="Refazer" data-kbd="Ctrl+Shift+Z"><svg class="ic"><use href="#i-redo"/></svg></button>
+      <span class="vsep"></span>
+      <button class="btn menu-btn" id="mFile" type="button" aria-haspopup="menu"><span>Arquivo</span><i class="unsaved" id="unsavedDot" hidden></i><svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+      <button class="btn menu-btn" id="mView" type="button" aria-haspopup="menu"><span>Exibir</span><svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+      <button class="btn menu-btn" id="mExport" type="button" aria-haspopup="menu"><svg class="ic"><use href="#i-download"/></svg><span>Exportar</span><svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+      <button class="iconbtn" id="btnEvent" type="button" aria-label="Configurar evento" data-tip="Configurar evento — nomes, data, cores e grupos"><svg class="ic"><use href="#i-gear"/></svg></button>
+      <button class="iconbtn" id="btnHelp" type="button" aria-label="Ajuda e atalhos" data-tip="Ajuda e atalhos de teclado" data-kbd="?"><svg class="ic"><use href="#i-help"/></svg></button>
+      <button class="iconbtn only-narrow" id="mMore" type="button" aria-label="Mais opções"><svg class="ic"><use href="#i-more"/></svg></button>
+    </div>
+  </header>
+
+  <div class="views">
+    <!-- ── Salão ── -->
+    <div class="view view-salao" id="vSalao">
+      <aside class="side" data-side="a" id="sideA"></aside>
+
+      <main class="stage">
+        <div class="toolbar" id="toolbar">
+          <button class="btn sm side-toggle" type="button" data-toggle-side="a"><i class="sdot a"></i><span data-role="sname">Lado A</span></button>
+          <div class="seg" id="modeSeg" aria-label="Modo">
+            <button type="button" data-m="seat" class="on" data-tip="Sentar convidados nas mesas">Organizar</button>
+            <button type="button" data-m="plan" data-tip="Desenhar o salão: mesas, áreas e imagem de fundo" data-kbd="E">Editar planta</button>
+          </div>
+
+          <div class="tb-group" data-for="seat">
+            <label class="search">
+              <svg class="ic"><use href="#i-search"/></svg>
+              <input type="search" id="q" name="q" placeholder="Buscar convidado ou mesa" autocomplete="off" aria-label="Buscar convidado ou mesa">
+              <kbd>/</kbd>
+            </label>
+            <button class="btn sm" id="btnAuto" type="button" aria-label="Distribuir quem está sem mesa" data-tip="Sugere mesas para quem ainda está sem lugar, mantendo lado e grupo juntos. Dá para desfazer."><svg class="ic"><use href="#i-auto"/></svg><span>Distribuir</span></button>
+          </div>
+
+          <div class="tb-group" data-for="plan" hidden>
+            <button class="tool" aria-label="Redonda" type="button" data-add="round" data-tip="Adicionar mesa redonda"><svg class="ic"><use href="#i-round"/></svg><span>Redonda</span></button>
+            <button class="tool" aria-label="Retangular" type="button" data-add="rect" data-tip="Adicionar mesa retangular"><svg class="ic"><use href="#i-rect"/></svg><span>Retangular</span></button>
+            <button class="tool" aria-label="Quadrada" type="button" data-add="square" data-tip="Adicionar mesa quadrada"><svg class="ic"><use href="#i-square"/></svg><span>Quadrada</span></button>
+            <button class="tool" aria-label="Oval" type="button" data-add="oval" data-tip="Adicionar mesa oval"><svg class="ic"><use href="#i-oval"/></svg><span>Oval</span></button>
+            <button class="tool" aria-label="Várias" type="button" id="btnMany" data-tip="Criar várias mesas de uma vez, em grade"><svg class="ic"><use href="#i-many"/></svg><span>Várias</span></button>
+            <span class="vsep"></span>
+            <button class="tool" aria-label="Área" type="button" data-addz="rect" data-tip="Adicionar área (pista, bar, palco…)"><svg class="ic"><use href="#i-area"/></svg><span>Área</span></button>
+            <button class="tool" aria-label="Texto" type="button" data-addz="text" data-tip="Adicionar texto solto na planta"><svg class="ic"><use href="#i-text"/></svg><span>Texto</span></button>
+            <span class="vsep"></span>
+            <button class="tool" aria-label="Fundo" type="button" id="btnBg" aria-haspopup="menu" data-tip="Usar uma imagem ou PDF da planta como fundo"><svg class="ic"><use href="#i-image"/></svg><span>Fundo</span><svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+            <label class="opacity" id="bgOpacityWrap" data-tip="Transparência da imagem de fundo" hidden>
+              <input type="range" id="bgOpacity" name="bgOpacity" min="10" max="100" step="5" aria-label="Opacidade da imagem de fundo">
+            </label>
+            <button class="tool" aria-label="Grade" type="button" id="btnSnap" aria-pressed="true" data-tip="Encaixar as mesas numa grade ao arrastar (segure Alt para soltar livre)"><svg class="ic"><use href="#i-grid"/></svg><span>Grade</span></button>
+          </div>
+
+          <span class="spacer"></span>
+          <button class="btn sm side-toggle" type="button" data-toggle-side="b"><i class="sdot b"></i><span data-role="sname">Lado B</span></button>
+        </div>
+
+        <div class="viewport" id="viewport">
+          <div class="floor" id="floor" data-lvl="far">
+            <img class="floor-bg" id="floorBg" alt="" hidden>
+            <div class="floor-items" id="floorItems"></div>
+          </div>
+
+          <div class="empty-floor" id="emptyFloor" hidden>
+            <h3>Salão vazio</h3>
+            <p>Desenhe as mesas por cima da planta do local ou crie várias de uma vez.</p>
+            <div class="row">
+              <button class="btn" type="button" data-act="bg-upload"><svg class="ic"><use href="#i-image"/></svg>Enviar planta (imagem ou PDF)</button>
+              <button class="btn primary" type="button" data-act="many"><svg class="ic"><use href="#i-many"/></svg>Criar mesas</button>
+            </div>
+          </div>
+
+          <div class="edit-hint" id="editHint" hidden>
+            <span>Editando a planta — arraste para mover, alça no canto redimensiona, botão direito para mais opções</span>
+            <button type="button" id="editDone">Concluir</button>
+          </div>
+
+          <div class="zoomctl">
+            <span class="zoomlbl num" id="zoomLbl">100%</span>
+            <button type="button" id="zIn" aria-label="Aproximar" data-tip="Aproximar" data-kbd="+"><svg class="ic"><use href="#i-plus"/></svg></button>
+            <button type="button" id="zOut" aria-label="Afastar" data-tip="Afastar" data-kbd="−"><svg class="ic"><path d="M3 8h10"/></svg></button>
+            <button type="button" id="zFit" aria-label="Ajustar à tela" data-tip="Ajustar à tela" data-kbd="F"><svg class="ic"><use href="#i-fit"/></svg></button>
+          </div>
+
+          <!-- painel da mesa -->
+          <div class="fpanel" id="tpanel" role="dialog" aria-labelledby="tpTitle" tabindex="-1">
+            <div class="fpanel-head">
+              <h2 id="tpTitle">Mesa</h2>
+              <span class="fpanel-occ num" id="tpOcc"></span>
+              <button class="iconbtn" type="button" id="tpMenu" aria-label="Mais ações da mesa"><svg class="ic"><use href="#i-more"/></svg></button>
+              <button class="iconbtn" type="button" id="tpClose" aria-label="Fechar painel"><svg class="ic"><use href="#i-x"/></svg></button>
+            </div>
+            <div class="fpanel-body" id="tpBody">
+              <div class="seatdots" id="tpDots" aria-hidden="true"></div>
+              <div class="occ-list" id="tpList"></div>
+              <details class="fpanel-more" id="tpMore">
+                <summary>Detalhes da mesa</summary>
+                <div class="frow"><label for="tpLabel">Número ou nome</label><input type="text" id="tpLabel" name="tpLabel" maxlength="12"></div>
+                <div class="frow"><label for="tpAlias">Apelido</label><input type="text" id="tpAlias" name="tpAlias" placeholder="ex.: Avós, Amigos da faculdade"></div>
+                <div class="frow"><label for="tpShape">Formato</label>
+                  <select id="tpShape" name="tpShape"><option value="round">Redonda</option><option value="rect">Retangular</option><option value="square">Quadrada</option><option value="oval">Oval</option></select>
+                </div>
+                <div class="frow"><label>Lugares</label>
+                  <div class="stepper"><button type="button" id="tpCapDec" aria-label="Diminuir lugares">−</button><span class="v num" id="tpCapV">10</span><button type="button" id="tpCapInc" aria-label="Aumentar lugares">+</button></div>
+                </div>
+                <div class="frow"><label for="tpRot">Rotação</label><span class="rangewrap"><input type="range" id="tpRot" name="tpRot" min="0" max="345" step="15"><span class="num" id="tpRotV">0°</span></span></div>
+                <div class="fcol"><label for="tpNotes">Anotações</label><textarea id="tpNotes" name="tpNotes" placeholder="Observações para o cerimonial…"></textarea></div>
+              </details>
+            </div>
+          </div>
+
+          <!-- painel da área -->
+          <div class="fpanel" id="zpanel" role="dialog" aria-labelledby="zpTitle">
+            <div class="fpanel-head">
+              <h2 id="zpTitle">Área do salão</h2>
+              <button class="iconbtn" type="button" id="zpClose" aria-label="Fechar painel"><svg class="ic"><use href="#i-x"/></svg></button>
+            </div>
+            <div class="fpanel-body">
+              <div class="frow"><label for="zpName">Nome</label><input type="text" id="zpName" name="zpName" maxlength="32"></div>
+              <div class="frow"><label for="zpShape">Tipo</label>
+                <select id="zpShape" name="zpShape"><option value="rect">Retângulo</option><option value="ellipse">Elipse</option><option value="text">Só texto</option></select>
+              </div>
+              <div class="frow"><label for="zpW">Largura (%)</label><input type="number" id="zpW" name="zpW" min="2" max="100"></div>
+              <div class="frow"><label for="zpH">Altura (%)</label><input type="number" id="zpH" name="zpH" min="2" max="100"></div>
+              <button class="btn danger" type="button" id="zpDelete"><svg class="ic"><use href="#i-trash"/></svg>Excluir área</button>
+            </div>
+          </div>
+
+          <!-- convidado selecionado -->
+          <div class="abar" id="abar" role="region" aria-label="Convidado selecionado">
+            <div class="abar-top">
+              <span class="adot" id="abDot" aria-hidden="true"></span>
+              <div class="abar-info"><div class="aname" id="abName"></div><div class="asub" id="abSub"></div></div>
+              <button class="iconbtn" type="button" id="abClose" aria-label="Cancelar seleção"><svg class="ic"><use href="#i-x"/></svg></button>
+            </div>
+            <div class="abar-chips" id="abChips"></div>
+            <div class="ahint" id="abHint"></div>
+            <div class="abar-actions">
+              <button class="btn" type="button" id="abEdit"><svg class="ic"><use href="#i-pencil"/></svg>Editar</button>
+              <button class="btn" type="button" id="abUnseat"><svg class="ic"><use href="#i-unseat"/></svg>Tirar da mesa</button>
+              <button class="btn" type="button" id="abMore" aria-label="Mais ações"><svg class="ic"><use href="#i-more"/></svg>Mais</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend" id="legend">
+          <span class="lg-group">
+            <span class="lg st-e" data-tip="Nenhum convidado sentado"><i></i>Livre</span>
+            <span class="lg st-p" data-tip="Ainda tem lugar"><i></i>Parcial</span>
+            <span class="lg st-f" data-tip="Todos os lugares ocupados"><i></i>Completa</span>
+            <span class="lg st-o" data-tip="Mais pessoas que lugares"><i></i>Lotada</span>
+          </span>
+          <span class="lg-group">
+            <span class="lg sd-a"><i></i><span data-role="sname-a">Lado A</span></span>
+            <span class="lg sd-b"><i></i><span data-role="sname-b">Lado B</span></span>
+            <span class="lg sd-k" data-tip="Cadeiras de crianças aparecem no mesmo tom, mais claro"><i></i>Crianças</span>
+          </span>
+          <span class="lg-hint" id="lgHint"></span>
+        </div>
+      </main>
+
+      <aside class="side" data-side="b" id="sideB"></aside>
+      <div class="side-scrim" id="sideScrim" hidden></div>
+    </div>
+
+    <!-- ── Convidados (planilha) ── -->
+    <section class="view view-lista" id="vLista" hidden>
+      <div class="lbar">
+        <label class="search">
+          <svg class="ic"><use href="#i-search"/></svg>
+          <input type="search" id="lq" name="lq" placeholder="Buscar por nome, telefone ou nota" autocomplete="off" aria-label="Buscar convidados">
+        </label>
+        <select id="lfSide" name="lfSide" aria-label="Filtrar por lado"></select>
+        <select id="lfGroup" name="lfGroup" aria-label="Filtrar por grupo"></select>
+        <select id="lfStatus" name="lfStatus" aria-label="Filtrar por situação">
+          <option value="">Todas as situações</option>
+          <option value="ok">Confirmados</option>
+          <option value="pend">Pendentes</option>
+          <option value="nao">Não vão</option>
+          <option value="sem">Sem mesa</option>
+          <option value="noinv">Sem convite</option>
+        </select>
+        <span class="lcount" id="lCount"></span>
+        <span class="spacer"></span>
+        <button class="btn" type="button" id="lImport"><svg class="ic"><use href="#i-upload"/></svg>Importar planilha</button>
+        <button class="btn primary" type="button" id="lAdd"><svg class="ic"><use href="#i-plus"/></svg>Novo convidado</button>
+      </div>
+      <div class="bulkbar" id="bulkbar" hidden>
+        <b id="bulkN"></b>
+        <button class="btn sm" type="button" data-bulk="status">Situação<svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+        <button class="btn sm" type="button" data-bulk="side">Lado<svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+        <button class="btn sm" type="button" data-bulk="group">Grupo<svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+        <button class="btn sm" type="button" data-bulk="table">Mesa<svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+        <button class="btn sm" type="button" data-bulk="invited">Convite<svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+        <button class="btn sm danger" type="button" data-bulk="delete"><svg class="ic"><use href="#i-trash"/></svg>Excluir</button>
+        <span class="spacer"></span>
+        <button class="btn sm" type="button" data-bulk="clear">Limpar seleção</button>
+      </div>
+      <div class="lwrap" id="lWrap">
+        <table class="gtable">
+          <thead id="lHead"></thead>
+          <tbody id="lBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Resumo ── -->
+    <section class="view view-resumo" id="vResumo" hidden>
+      <div class="rwrap" id="rWrap"></div>
+    </section>
+  </div>
+</div>
+
+<!-- ── Diálogos ── -->
+<dialog id="gdlg" aria-labelledby="gTitle">
+  <form method="dialog" id="gform">
+    <div class="dlg-head"><h2 id="gTitle">Convidado</h2><button class="iconbtn" type="button" data-close aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body">
+      <div class="frow"><label for="fNome">Nome</label><input type="text" id="fNome" name="fNome" required placeholder="ex.: João e Maria Silva"></div>
+      <div class="fsub">Pessoas</div>
+      <div class="frow"><label for="fAd">Adultos</label><input type="number" id="fAd" name="fAd" min="0" max="30" value="1"></div>
+      <div class="frow"><label for="fKA" id="fKALbl">Crianças</label><input type="number" id="fKA" name="fKA" min="0" max="20" value="0"></div>
+      <div class="frow"><label for="fKB" id="fKBLbl">Crianças</label><input type="number" id="fKB" name="fKB" min="0" max="20" value="0"></div>
+      <div class="fsub">Classificação</div>
+      <div class="frow"><label for="fLado">Lado</label><select id="fLado" name="fLado"></select></div>
+      <div class="frow"><label for="fGrupo">Grupo</label><select id="fGrupo" name="fGrupo"></select></div>
+      <div class="frow"><label for="fSit">Situação</label>
+        <select id="fSit" name="fSit"><option value="pend">Pendente</option><option value="ok">Confirmado</option><option value="nao">Não vai</option></select>
+      </div>
+      <div class="frow"><label for="fMesa">Mesa</label><select id="fMesa" name="fMesa"></select></div>
+      <div class="frow"><label for="fInv">Convite enviado</label><label class="switch"><input type="checkbox" id="fInv" name="fInv"><span class="tr"></span></label></div>
+      <div class="fsub">Contato e observações</div>
+      <div class="frow"><label for="fTel">Telefone</label><input type="tel" id="fTel" name="fTel" placeholder="(00) 00000-0000"></div>
+      <div class="frow"><label for="fNotes">Notas</label><textarea id="fNotes" name="fNotes"></textarea></div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger" id="gDelete">Excluir</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close>Cancelar</button>
+      <button type="submit" class="btn" id="gSaveNext" value="next">Salvar e adicionar outro</button>
+      <button type="submit" class="btn primary" value="save">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="evdlg" class="wide" aria-labelledby="evTitle">
+  <div class="dlg-head"><h2 id="evTitle">Configurar evento</h2><button class="iconbtn" type="button" data-close aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dtabs seg" id="evTabs">
+    <button type="button" data-t="dados" class="on">Evento</button>
+    <button type="button" data-t="aparencia">Aparência</button>
+    <button type="button" data-t="grupos">Grupos</button>
+  </div>
+  <div class="dlg-body" id="evBody">
+    <div class="evnotice" id="evNotice" hidden></div>
+    <div data-tab="dados">
+      <div class="grid2">
+        <div class="fcol"><label for="eA">Nome de quem casa (1)</label><input type="text" id="eA" name="eA" placeholder="ex.: Ana" autocomplete="off"></div>
+        <div class="fcol"><label for="eB">Nome de quem casa (2)</label><input type="text" id="eB" name="eB" placeholder="ex.: Pedro" autocomplete="off"></div>
+      </div>
+      <div class="fcol"><label for="eTitle">Título exibido</label><input type="text" id="eTitle" name="eTitle" placeholder="automático: Ana &amp; Pedro"><span class="hint">Deixe em branco para usar os dois nomes.</span></div>
+      <div class="grid2">
+        <div class="fcol"><label for="eDate">Data</label><input type="date" id="eDate" name="eDate"></div>
+        <div class="fcol"><label for="eTime">Horário</label><input type="time" id="eTime" name="eTime"></div>
+      </div>
+      <div class="grid2">
+        <div class="fcol"><label for="eVenue">Local</label><input type="text" id="eVenue" name="eVenue" placeholder="ex.: Salão Jardim"></div>
+        <div class="fcol"><label for="eCity">Cidade</label><input type="text" id="eCity" name="eCity" placeholder="ex.: Porto Alegre"></div>
+      </div>
+      <div class="fsub">Faixas de idade das crianças</div>
+      <div class="grid2">
+        <div class="fcol"><label for="eKA">Faixa 1</label><input type="text" id="eKA" name="eKA" placeholder="0 a 5 anos"></div>
+        <div class="fcol"><label for="eKB">Faixa 2</label><input type="text" id="eKB" name="eKB" placeholder="6 a 12 anos"></div>
+      </div>
+      <span class="hint">Usadas no cadastro e no resumo para o buffet (ex.: isentas e meia).</span>
+    </div>
+    <div data-tab="aparencia" hidden>
+      <div class="fcol"><label>Cor principal</label><div class="swatches" id="swAccent"></div></div>
+      <div class="grid2">
+        <div class="fcol"><label id="lblColorA">Cor do lado A</label><div class="swatches" id="swA"></div></div>
+        <div class="fcol"><label id="lblColorB">Cor do lado B</label><div class="swatches" id="swB"></div></div>
+      </div>
+      <div class="fcol"><label>Fonte do título</label><div class="fontpick" id="fontPick"></div></div>
+    </div>
+    <div data-tab="grupos" hidden>
+      <p class="hint">Grupos ajudam a filtrar e a manter as pessoas juntas na distribuição automática. Grupos marcados como equipe (fotógrafo, banda, cerimonial) não entram na contagem de convidados.</p>
+      <div class="glist-edit" id="groupList"></div>
+      <button class="btn sm" type="button" id="groupAdd"><svg class="ic"><use href="#i-plus"/></svg>Novo grupo</button>
+    </div>
+  </div>
+  <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn primary" data-close>Concluir</button></div>
+</dialog>
+
+<dialog id="impdlg" class="wide" aria-labelledby="impTitle">
+  <div class="dlg-head"><h2 id="impTitle">Importar convidados</h2><button class="iconbtn" type="button" data-close aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body" id="impBody">
+    <div data-step="1">
+      <div class="dropzone" id="impDrop">
+        <svg class="ic big"><use href="#i-sheet"/></svg>
+        <b>Arraste a planilha aqui ou</b>
+        <button class="btn" type="button" id="impPick">Escolher arquivo</button>
+        <span class="hint">Excel (.xlsx), LibreOffice (.ods) ou CSV</span>
+      </div>
+      <div class="fcol"><label for="impPaste">…ou cole as linhas copiadas da planilha</label><textarea id="impPaste" name="impPaste" rows="5" placeholder="Nome&#9;Adultos&#9;Crianças&#9;Lado&#10;João e Maria&#9;2&#9;1&#9;Noiva"></textarea></div>
+      <div class="imp-tpl">
+        <span class="hint">Começando do zero? Use o modelo — as colunas já vêm prontas, com instruções.</span>
+        <button class="linkbtn" type="button" id="impTemplate"><svg class="ic"><use href="#i-download"/></svg>Baixar modelo Excel (.xlsx)</button>
+        <button class="linkbtn" type="button" id="impTemplateCsv"><svg class="ic"><use href="#i-download"/></svg>Modelo CSV</button>
+      </div>
+    </div>
+    <div data-step="2" hidden>
+      <div class="imp-src" id="impSrc"></div>
+      <div class="fsub">Que coluna corresponde a cada informação?</div>
+      <div class="mapgrid" id="impMap"></div>
+      <div class="sidemap" id="impSideMap" hidden></div>
+      <div class="grid2">
+        <div class="fcol"><label for="impSide">Lado, quando a planilha não diz</label><select id="impSide" name="impSide"></select></div>
+        <div class="fcol"><label for="impGroup">Grupo, quando a planilha não diz</label><select id="impGroup" name="impGroup"></select></div>
+      </div>
+      <div class="fcol"><label for="impMode">O que fazer com a lista atual</label>
+        <select id="impMode" name="impMode">
+          <option value="update">Atualizar quem já existe (mesmo nome ou código) e adicionar os novos</option>
+          <option value="add">Só adicionar — manter todos os atuais</option>
+          <option value="replace">Substituir a lista inteira</option>
+        </select>
+      </div>
+      <div class="optrow"><div><div class="olabel">Criar mesas que não existem</div><div class="odesc">Quando a coluna Mesa cita uma mesa que ainda não está no salão</div></div><label class="switch"><input type="checkbox" id="impMkTables" name="impMkTables" checked><span class="tr"></span></label></div>
+      <div class="fsub">Prévia <span class="hint" id="impCount"></span></div>
+      <label class="chk" id="impAllWrap" hidden><input type="checkbox" id="impAll" name="impAll"> Ler também o que vem depois das linhas em branco</label>
+      <div class="imp-preview" id="impPreview"></div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="impBack" hidden>Voltar</button>
+    <span class="spacer"></span>
+    <button type="button" class="btn" data-close>Cancelar</button>
+    <button type="button" class="btn primary" id="impNext" disabled>Continuar</button>
+  </div>
+</dialog>
+
+<dialog id="manydlg" aria-labelledby="manyTitle">
+  <form method="dialog" id="manyForm">
+    <div class="dlg-head"><h2 id="manyTitle">Criar várias mesas</h2><button class="iconbtn" type="button" data-close aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button></div>
+    <div class="dlg-body">
+      <div class="frow"><label for="mQty">Quantidade</label><input type="number" id="mQty" name="mQty" min="1" max="200" value="10"></div>
+      <div class="frow"><label for="mShape">Formato</label>
+        <select id="mShape" name="mShape"><option value="round">Redonda</option><option value="rect">Retangular</option><option value="square">Quadrada</option><option value="oval">Oval</option></select>
+      </div>
+      <div class="frow"><label for="mCap">Lugares por mesa</label><input type="number" id="mCap" name="mCap" min="1" max="60" value="10"></div>
+      <div class="frow"><label for="mStart">Numerar a partir de</label><input type="number" id="mStart" name="mStart" min="0" max="999" value="1"></div>
+      <div class="frow"><label for="mCols">Mesas por fileira</label><input type="number" id="mCols" name="mCols" min="1" max="30" value="5"></div>
+      <span class="hint">As mesas aparecem em grade no centro do salão; depois é só arrastar cada uma para o lugar certo.</span>
+    </div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" data-close>Cancelar</button><button type="submit" class="btn primary">Criar mesas</button></div>
+  </form>
+</dialog>
+
+<dialog id="evsdlg" aria-labelledby="evsTitle">
+  <div class="dlg-head"><h2 id="evsTitle">Meus eventos</h2><button class="iconbtn" type="button" data-close aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body"><p class="hint">Eventos salvos neste navegador. Para levar a outro computador, use Arquivo › Salvar backup.</p><div class="evlist" id="evList"></div></div>
+  <div class="dlg-foot"><button type="button" class="btn" id="evsOpen"><svg class="ic"><use href="#i-folder"/></svg>Abrir backup…</button><span class="spacer"></span><button type="button" class="btn primary" id="evsNew"><svg class="ic"><use href="#i-plus"/></svg>Novo evento</button></div>
+</dialog>
+
+<dialog id="helpdlg" class="wide" aria-labelledby="helpTitle">
+  <div class="dlg-head"><h2 id="helpTitle">Ajuda e atalhos</h2><button class="iconbtn" type="button" data-close aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body help">
+    <div class="grid2 top">
+      <div>
+        <h3>Organizar convidados</h3>
+        <ul>
+          <li>Clique num convidado da lista e depois numa mesa para sentá-lo — ou arraste o card até a mesa.</li>
+          <li>Arraste uma mesa sobre outra para trocar os convidados entre elas.</li>
+          <li>Clique numa mesa para ver quem está nela, mudar lugares e anotar.</li>
+          <li>Botão direito (ou toque longo) em convidados e mesas abre todas as ações.</li>
+          <li><b>Distribuir</b> sugere mesas para quem está sem lugar; Ctrl+Z desfaz.</li>
+        </ul>
+        <h3>Editar a planta</h3>
+        <ul>
+          <li>Em <b>Fundo</b>, envie uma foto ou PDF da planta do salão e desenhe as mesas por cima.</li>
+          <li>Arraste mesas e áreas; a alça no canto muda o tamanho.</li>
+          <li>Botão direito no fundo do salão adiciona mesa ou área naquele ponto.</li>
+        </ul>
+        <h3>Seus dados</h3>
+        <ul>
+          <li>Tudo fica salvo só neste navegador — nada é enviado para a internet.</li>
+          <li>Faça backups com Ctrl+S (Arquivo › Salvar backup). Limpar os dados do navegador apaga o evento.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Atalhos</h3>
+        <table class="kbds">
+          <tr><td><kbd>/</kbd> ou <kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Buscar convidado ou mesa</td></tr>
+          <tr><td><kbd>N</kbd></td><td>Novo convidado</td></tr>
+          <tr><td><kbd>E</kbd></td><td>Editar planta / organizar</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Desfazer</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Refazer</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Salvar backup</td></tr>
+          <tr><td><kbd>F</kbd> · <kbd>+</kbd> · <kbd>−</kbd></td><td>Ajustar à tela · zoom</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Fechar painel / cancelar seleção</td></tr>
+          <tr><td colspan="2" class="ksub">Na edição da planta, com uma mesa selecionada</td></tr>
+          <tr><td><kbd>Setas</kbd></td><td>Mover (com <kbd>Shift</kbd>, mais rápido)</td></tr>
+          <tr><td><kbd>R</kbd></td><td>Girar 15° (<kbd>Shift</kbd>+<kbd>R</kbd>: 90°)</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Duplicar</td></tr>
+          <tr><td><kbd>Delete</kbd></td><td>Excluir</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="dlg-foot"><span class="hint">Mapa de Mesas — código aberto, gratuito.</span><span class="spacer"></span><button type="button" class="btn primary" data-close>Fechar</button></div>
+</dialog>
+
+<dialog id="askdlg" class="narrow" aria-labelledby="askTitle">
+  <form method="dialog">
+    <div class="dlg-head"><h2 id="askTitle"></h2></div>
+    <div class="dlg-body"><p id="askBody"></p></div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="submit" class="btn" value="no" id="askNo">Cancelar</button><button type="submit" class="btn primary" value="yes" id="askYes">Confirmar</button></div>
+  </form>
+</dialog>
+
+<dialog id="welcome" class="wide welcome" aria-labelledby="wTitle">
+  <div class="w-steps" id="wSteps">
+    <section data-w="0">
+      <div class="w-hero">
+        <img src="assets/icon.svg" alt="" width="56" height="56">
+        <h2 id="wTitle">Mapa de Mesas</h2>
+        <p>Organize os convidados do casamento nas mesas do salão — por cima da planta do local, com contagem de lugares, crianças e listas prontas para o cerimonial.</p>
+        <p class="hint">Gratuito e funciona sem internet. Os dados ficam só neste navegador.</p>
+      </div>
+      <div class="w-migrate" id="wMigrate" hidden></div>
+      <div class="w-choices">
+        <button class="w-choice primary" type="button" data-w-act="new"><svg class="ic"><use href="#i-plus"/></svg><b>Começar um evento</b><span>Nomes, data, salão e convidados em 3 passos</span></button>
+        <button class="w-choice" type="button" data-w-act="open"><svg class="ic"><use href="#i-folder"/></svg><b>Abrir backup</b><span>Um arquivo .json salvo antes</span></button>
+        <button class="w-choice" type="button" data-w-act="demo"><svg class="ic"><use href="#i-eye"/></svg><b>Ver um exemplo</b><span>Evento fictício para explorar</span></button>
+      </div>
+    </section>
+    <section data-w="1" hidden>
+      <div class="w-head"><span class="w-n">Passo 1 de 3</span><h2>Sobre o evento</h2></div>
+      <div class="grid2">
+        <div class="fcol"><label for="wA">Nome de quem casa (1)</label><input type="text" id="wA" name="wA" placeholder="ex.: Ana" autocomplete="off"></div>
+        <div class="fcol"><label for="wB">Nome de quem casa (2)</label><input type="text" id="wB" name="wB" placeholder="ex.: Pedro" autocomplete="off"></div>
+      </div>
+      <div class="grid2">
+        <div class="fcol"><label for="wDate">Data</label><input type="date" id="wDate" name="wDate"></div>
+        <div class="fcol"><label for="wTime">Horário <span class="hint">(opcional)</span></label><input type="time" id="wTime" name="wTime"></div>
+      </div>
+      <div class="grid2">
+        <div class="fcol"><label for="wVenue">Local</label><input type="text" id="wVenue" name="wVenue" placeholder="ex.: Salão Jardim"></div>
+        <div class="fcol"><label for="wCity">Cidade</label><input type="text" id="wCity" name="wCity" placeholder="ex.: Porto Alegre"></div>
+      </div>
+      <div class="fcol"><label>Cor principal</label><div class="swatches" id="wSw"></div></div>
+    </section>
+    <section data-w="2" hidden>
+      <div class="w-head"><span class="w-n">Passo 2 de 3</span><h2>O salão</h2></div>
+      <div class="w-choices col">
+        <label class="w-radio"><input type="radio" name="wPlan" value="bg" checked><span><b>Tenho a planta do local</b><span>Envie uma imagem ou PDF; você desenha as mesas por cima depois.</span></span></label>
+        <label class="w-radio"><input type="radio" name="wPlan" value="grid"><span><b>Criar mesas em grade</b><span>
+          <span class="w-inline"><input type="number" id="wQty" name="wQty" min="1" max="200" value="15" aria-label="Quantidade de mesas"> mesas de <input type="number" id="wCap" name="wCap" min="1" max="40" value="10" aria-label="Lugares por mesa"> lugares</span></span></span></label>
+        <label class="w-radio"><input type="radio" name="wPlan" value="blank"><span><b>Começar em branco</b><span>Adiciono as mesas depois, em Editar planta.</span></span></label>
+      </div>
+    </section>
+    <section data-w="3" hidden>
+      <div class="w-head"><span class="w-n">Passo 3 de 3</span><h2>Os convidados</h2></div>
+      <div class="w-choices col">
+        <label class="w-radio"><input type="radio" name="wGuests" value="import" checked><span><b>Importar uma planilha</b><span>Excel, LibreOffice, Google Planilhas (copiar e colar) ou CSV.</span></span></label>
+        <label class="w-radio"><input type="radio" name="wGuests" value="later"><span><b>Adicionar depois</b><span>Cadastro um a um pela lista de convidados.</span></span></label>
+      </div>
+    </section>
+  </div>
+  <div class="dlg-foot" id="wFoot" hidden>
+    <button type="button" class="btn" id="wBack">Voltar</button>
+    <span class="spacer"></span>
+    <button type="button" class="btn primary" id="wNext">Continuar</button>
+  </div>
+</dialog>
+
+<div class="menu" id="menu" role="menu" hidden></div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="printView"></div>
+<input type="file" id="fileJson" accept=".json,application/json" hidden>
+<input type="file" id="fileBg" accept="image/*,.pdf,application/pdf" hidden>
+<input type="file" id="fileGuests" accept=".csv,.tsv,.txt,.xlsx,.xls,.ods,text/csv" hidden>
+
+<script src="assets/js/core.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/floor.js"></script>
+<script src="assets/js/guests.js"></script>
+<script src="assets/js/views.js"></script>
+<script src="assets/js/io.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
