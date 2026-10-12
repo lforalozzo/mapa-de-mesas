@@ -162,6 +162,7 @@ $("lfGroup").addEventListener("change", (e) => { ui.list.group = e.target.value;
 $("lfStatus").addEventListener("change", (e) => { ui.list.status = e.target.value; renderList(); });
 $("lAdd").addEventListener("click", () => openGuestModal(null, ""));
 $("lImport").addEventListener("click", () => openImport());
+$("lTemplate").addEventListener("click", () => downloadTemplate("xlsx"));
 $("lHead").addEventListener("keydown", (e) => {
   const th = e.target.closest("th[data-col]");
   if (th && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); th.click(); }
@@ -587,6 +588,7 @@ $("wNext").addEventListener("click", () => {
   }
   if (plan === "bg") { setMode("plan"); $("fileBg").click(); }
   if (guests === "import") openImport();
+  else if (guests === "template") { downloadTemplate("xlsx"); toast("Modelo baixado — quando preencher, use Arquivo › Importar convidados"); }
   else toast("Evento criado — bom planejamento!");
 });
 function importLegacy() {

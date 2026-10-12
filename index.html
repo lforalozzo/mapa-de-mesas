@@ -33,6 +33,12 @@
     <symbol id="i-oval" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="5.3" ry="3.2"/><path d="M8 2.4v.1M8 13.5v.1M1.3 8h.1M14.6 8h.1"/></symbol>
     <symbol id="i-many" viewBox="0 0 16 16"><circle cx="4.5" cy="4.5" r="2"/><circle cx="11.5" cy="4.5" r="2"/><circle cx="4.5" cy="11.5" r="2"/><circle cx="11.5" cy="11.5" r="2"/></symbol>
     <symbol id="i-grid" viewBox="0 0 16 16"><path d="M2.5 2.5h11v11h-11zM6.2 2.5v11M9.8 2.5v11M2.5 6.2h11M2.5 9.8h11"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 16 16"><path d="M9.3 2.7 13.3 6.7 7.6 12.4H4.6L2.7 10.5a1 1 0 0 1 0-1.4Z"/><path d="M6 6l4 4M7.6 12.4h6"/></symbol>
+    <symbol id="i-triangle" viewBox="0 0 16 16"><path d="M8 2.5 14 13.5H2Z"/></symbol>
+    <symbol id="i-align-row" viewBox="0 0 16 16"><path d="M1.5 8h13"/><rect x="2.5" y="5" width="3" height="6" rx=".8"/><rect x="10.5" y="4" width="3" height="8" rx=".8"/></symbol>
+    <symbol id="i-align-col" viewBox="0 0 16 16"><path d="M8 1.5v13"/><rect x="5" y="2.5" width="6" height="3" rx=".8"/><rect x="4" y="10.5" width="8" height="3" rx=".8"/></symbol>
+    <symbol id="i-dist-h" viewBox="0 0 16 16"><path d="M1.5 2v12M14.5 2v12"/><rect x="6.5" y="4.5" width="3" height="7" rx=".8"/></symbol>
+    <symbol id="i-dist-v" viewBox="0 0 16 16"><path d="M2 1.5h12M2 14.5h12"/><rect x="4.5" y="6.5" width="7" height="3" rx=".8"/></symbol>
     <symbol id="i-area" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5" stroke-dasharray="2 2"/></symbol>
     <symbol id="i-text" viewBox="0 0 16 16"><path d="M3 4.5V3h10v1.5M8 3v10M6 13h4"/></symbol>
     <symbol id="i-image" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 12 3.5-3.5 2.5 2.5 2-2 3 3"/></symbol>
@@ -112,16 +118,16 @@
           </div>
 
           <div class="tb-group" data-for="plan" hidden>
-            <button class="tool" aria-label="Redonda" type="button" data-add="round" data-tip="Adicionar mesa redonda"><svg class="ic"><use href="#i-round"/></svg><span>Redonda</span></button>
-            <button class="tool" aria-label="Retangular" type="button" data-add="rect" data-tip="Adicionar mesa retangular"><svg class="ic"><use href="#i-rect"/></svg><span>Retangular</span></button>
-            <button class="tool" aria-label="Quadrada" type="button" data-add="square" data-tip="Adicionar mesa quadrada"><svg class="ic"><use href="#i-square"/></svg><span>Quadrada</span></button>
-            <button class="tool" aria-label="Oval" type="button" data-add="oval" data-tip="Adicionar mesa oval"><svg class="ic"><use href="#i-oval"/></svg><span>Oval</span></button>
+            <button class="tool" aria-label="Redonda" type="button" data-add="round" data-tip="Adicionar mesa redonda" data-kbd="1"><svg class="ic"><use href="#i-round"/></svg><span>Redonda</span></button>
+            <button class="tool" aria-label="Retangular" type="button" data-add="rect" data-tip="Adicionar mesa retangular" data-kbd="2"><svg class="ic"><use href="#i-rect"/></svg><span>Retangular</span></button>
+            <button class="tool" aria-label="Quadrada" type="button" data-add="square" data-tip="Adicionar mesa quadrada" data-kbd="3"><svg class="ic"><use href="#i-square"/></svg><span>Quadrada</span></button>
+            <button class="tool" aria-label="Oval" type="button" data-add="oval" data-tip="Adicionar mesa oval" data-kbd="4"><svg class="ic"><use href="#i-oval"/></svg><span>Oval</span></button>
             <button class="tool" aria-label="Várias" type="button" id="btnMany" data-tip="Criar várias mesas de uma vez, em grade"><svg class="ic"><use href="#i-many"/></svg><span>Várias</span></button>
             <span class="vsep"></span>
-            <button class="tool" aria-label="Área" type="button" data-addz="rect" data-tip="Adicionar área (pista, bar, palco…)"><svg class="ic"><use href="#i-area"/></svg><span>Área</span></button>
-            <button class="tool" aria-label="Texto" type="button" data-addz="text" data-tip="Adicionar texto solto na planta"><svg class="ic"><use href="#i-text"/></svg><span>Texto</span></button>
+            <button class="tool" type="button" id="btnZone" aria-haspopup="menu" aria-label="Adicionar elemento" data-tip="Áreas (retângulo, oval, triângulo) e textos — A, O, V, T"><svg class="ic"><use href="#i-area"/></svg><span>Elementos</span><svg class="ic chev"><use href="#i-chev-down"/></svg></button>
             <span class="vsep"></span>
             <button class="tool" aria-label="Fundo" type="button" id="btnBg" aria-haspopup="menu" data-tip="Usar uma imagem ou PDF da planta como fundo"><svg class="ic"><use href="#i-image"/></svg><span>Fundo</span><svg class="ic chev"><use href="#i-chev-down"/></svg></button>
+            <button class="tool" type="button" id="btnMask" aria-pressed="false" aria-label="Cobrir partes da planta" data-tip="Cobrir partes da planta: arraste sobre mesas já desenhadas na imagem para escondê-las" hidden><svg class="ic"><use href="#i-eraser"/></svg><span>Cobrir</span></button>
             <label class="opacity" id="bgOpacityWrap" data-tip="Transparência da imagem de fundo" hidden>
               <input type="range" id="bgOpacity" name="bgOpacity" min="10" max="100" step="5" aria-label="Opacidade da imagem de fundo">
             </label>
@@ -180,6 +186,7 @@
                 <div class="frow"><label>Lugares</label>
                   <div class="stepper"><button type="button" id="tpCapDec" aria-label="Diminuir lugares">−</button><span class="v num" id="tpCapV">10</span><button type="button" id="tpCapInc" aria-label="Aumentar lugares">+</button></div>
                 </div>
+                <div class="frow"><label for="tpScale">Tamanho</label><span class="rangewrap"><input type="range" id="tpScale" name="tpScale" min="50" max="250" step="5"><span class="num" id="tpScaleV">100%</span></span></div>
                 <div class="frow"><label for="tpRot">Rotação</label><span class="rangewrap"><input type="range" id="tpRot" name="tpRot" min="0" max="345" step="15"><span class="num" id="tpRotV">0°</span></span></div>
                 <div class="fcol"><label for="tpNotes">Anotações</label><textarea id="tpNotes" name="tpNotes" placeholder="Observações para o cerimonial…"></textarea></div>
               </details>
@@ -193,13 +200,41 @@
               <button class="iconbtn" type="button" id="zpClose" aria-label="Fechar painel"><svg class="ic"><use href="#i-x"/></svg></button>
             </div>
             <div class="fpanel-body">
-              <div class="frow"><label for="zpName">Nome</label><input type="text" id="zpName" name="zpName" maxlength="32"></div>
+              <div class="frow" id="zpNameRow"><label for="zpName">Nome</label><input type="text" id="zpName" name="zpName" maxlength="32"></div>
+              <div class="frow" id="zpFillRow" hidden><label for="zpFill">Cor</label><span class="fillpick"><input type="color" id="zpFill" name="zpFill" value="#ffffff" aria-label="Cor da cobertura"><button class="btn sm" type="button" id="zpWhite">Branco</button><button class="btn sm" type="button" id="zpPick" data-tip="Clique num ponto da planta para usar a cor do papel">Pegar da planta</button></span></div>
               <div class="frow"><label for="zpShape">Tipo</label>
-                <select id="zpShape" name="zpShape"><option value="rect">Retângulo</option><option value="ellipse">Elipse</option><option value="text">Só texto</option></select>
+                <select id="zpShape" name="zpShape"><option value="rect">Retângulo</option><option value="ellipse">Elipse</option><option value="text">Só texto</option><option value="mask">Cobertura retangular</option><option value="maskellipse">Cobertura redonda</option></select>
               </div>
               <div class="frow"><label for="zpW">Largura (%)</label><input type="number" id="zpW" name="zpW" min="2" max="100"></div>
               <div class="frow"><label for="zpH">Altura (%)</label><input type="number" id="zpH" name="zpH" min="2" max="100"></div>
-              <button class="btn danger" type="button" id="zpDelete"><svg class="ic"><use href="#i-trash"/></svg>Excluir área</button>
+              <div class="frow"><label for="zpRot">Rotação</label><span class="rangewrap"><input type="range" id="zpRot" name="zpRot" min="0" max="345" step="15"><span class="num" id="zpRotV">0°</span></span></div>
+              <button class="btn danger" type="button" id="zpDelete"><svg class="ic"><use href="#i-trash"/></svg><span>Excluir área</span></button>
+            </div>
+          </div>
+
+          <!-- vários itens selecionados -->
+          <div class="fpanel" id="mpanel" role="dialog" aria-labelledby="mpTitle">
+            <div class="fpanel-head">
+              <h2 id="mpTitle">Itens selecionados</h2>
+              <button class="iconbtn" type="button" data-mp="close" aria-label="Limpar seleção"><svg class="ic"><use href="#i-x"/></svg></button>
+            </div>
+            <div class="fpanel-body">
+              <div class="mp-row">
+                <button class="tool" type="button" data-mp="row" aria-label="Alinhar em linha" data-tip="Alinhar em linha (pela primeira selecionada)"><svg class="ic"><use href="#i-align-row"/></svg></button>
+                <button class="tool" type="button" data-mp="col" aria-label="Alinhar em coluna" data-tip="Alinhar em coluna (pela primeira selecionada)"><svg class="ic"><use href="#i-align-col"/></svg></button>
+                <button class="tool" type="button" data-mp="dh" aria-label="Distribuir na horizontal" data-tip="Espaços iguais na horizontal"><svg class="ic"><use href="#i-dist-h"/></svg></button>
+                <button class="tool" type="button" data-mp="dv" aria-label="Distribuir na vertical" data-tip="Espaços iguais na vertical"><svg class="ic"><use href="#i-dist-v"/></svg></button>
+                <span class="vsep"></span>
+                <button class="tool" type="button" data-mp="rot" aria-label="Girar 90°" data-tip="Girar 90°" data-kbd="Shift+R"><svg class="ic"><use href="#i-rotate"/></svg></button>
+                <button class="tool" type="button" data-mp="dup" aria-label="Duplicar" data-tip="Duplicar" data-kbd="Ctrl+D"><svg class="ic"><use href="#i-copy"/></svg></button>
+                <button class="tool" type="button" data-mp="del" aria-label="Excluir" data-tip="Excluir" data-kbd="Del"><svg class="ic"><use href="#i-trash"/></svg></button>
+              </div>
+              <div id="mpTables" class="fcol">
+                <div class="frow"><label for="mpCap">Lugares</label><select id="mpCap" name="mpCap"><option value="">— variados —</option><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option>14</option><option>16</option><option>18</option><option>20</option><option>24</option></select></div>
+                <div class="frow"><label for="mpShape">Formato</label><select id="mpShape" name="mpShape"><option value="">— variados —</option><option value="round">Redonda</option><option value="rect">Retangular</option><option value="square">Quadrada</option><option value="oval">Oval</option></select></div>
+                <div class="frow"><label for="mpScale">Tamanho</label><span class="rangewrap"><input type="range" id="mpScale" name="mpScale" min="50" max="250" step="5"><span class="num" id="mpScaleV">100%</span></span></div>
+              </div>
+              <p class="hint">Arraste qualquer item para mover todos · setas movem · <kbd>[</kbd> <kbd>]</kbd> mudam os lugares</p>
             </div>
           </div>
 
@@ -259,6 +294,7 @@
         </select>
         <span class="lcount" id="lCount"></span>
         <span class="spacer"></span>
+        <button class="btn" type="button" id="lTemplate" data-tip="Planilha Excel com as colunas certas e listas suspensas — preencha e importe"><svg class="ic"><use href="#i-download"/></svg>Modelo Excel</button>
         <button class="btn" type="button" id="lImport"><svg class="ic"><use href="#i-upload"/></svg>Importar planilha</button>
         <button class="btn primary" type="button" id="lAdd"><svg class="ic"><use href="#i-plus"/></svg>Novo convidado</button>
       </div>
@@ -454,7 +490,9 @@
         <ul>
           <li>Em <b>Fundo</b>, envie uma foto ou PDF da planta do salão e desenhe as mesas por cima.</li>
           <li>Arraste mesas e áreas; a alça no canto muda o tamanho.</li>
-          <li>Botão direito no fundo do salão adiciona mesa ou área naquele ponto.</li>
+          <li>Botão direito no fundo do salão adiciona mesa ou área naquele ponto; as teclas <kbd>1</kbd>–<kbd>4</kbd>, <kbd>A</kbd>, <kbd>O</kbd>, <kbd>V</kbd> e <kbd>T</kbd> criam onde o ponteiro está.</li>
+          <li>Shift+arrastar seleciona várias mesas para mover, alinhar, distribuir ou mudar lugares de uma vez.</li>
+          <li>Se a planta já tem mesas desenhadas, use <b>Cobrir</b> (tecla <kbd>C</kbd>) e arraste por cima delas para escondê-las.</li>
         </ul>
         <h3>Seus dados</h3>
         <ul>
@@ -473,11 +511,23 @@
           <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Salvar backup</td></tr>
           <tr><td><kbd>F</kbd> · <kbd>+</kbd> · <kbd>−</kbd></td><td>Ajustar à tela · zoom</td></tr>
           <tr><td><kbd>Esc</kbd></td><td>Fechar painel / cancelar seleção</td></tr>
-          <tr><td colspan="2" class="ksub">Na edição da planta, com uma mesa selecionada</td></tr>
+          <tr><td colspan="2" class="ksub">Editar planta — criar onde o ponteiro está</td></tr>
+          <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></td><td>Mesa redonda, retangular, quadrada, oval</td></tr>
+          <tr><td><kbd>A</kbd> <kbd>O</kbd> <kbd>V</kbd> <kbd>T</kbd></td><td>Área retangular, área oval, triângulo, texto</td></tr>
+          <tr><td><kbd>C</kbd></td><td>Desenhar coberturas sobre a planta</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Colar o que foi copiado</td></tr>
+          <tr><td colspan="2" class="ksub">Editar planta — com itens selecionados</td></tr>
+          <tr><td><kbd>Shift</kbd>+clique · <kbd>Shift</kbd>+arrastar</td><td>Selecionar várias mesas e áreas</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>Selecionar todas as mesas</td></tr>
           <tr><td><kbd>Setas</kbd></td><td>Mover (com <kbd>Shift</kbd>, mais rápido)</td></tr>
-          <tr><td><kbd>R</kbd></td><td>Girar 15° (<kbd>Shift</kbd>+<kbd>R</kbd>: 90°)</td></tr>
-          <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Duplicar</td></tr>
+          <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Menos / mais lugares</td></tr>
+          <tr><td><kbd>Shift</kbd>+<kbd>[</kbd> <kbd>]</kbd></td><td>Menor / maior</td></tr>
+          <tr><td><kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd></td><td>Trocar o formato das mesas</td></tr>
+          <tr><td><kbd>R</kbd> · <kbd>Shift</kbd>+<kbd>R</kbd></td><td>Girar 15° · 90°</td></tr>
+          <tr><td><kbd>F2</kbd></td><td>Renomear</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> · <kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Copiar · duplicar</td></tr>
           <tr><td><kbd>Delete</kbd></td><td>Excluir</td></tr>
+          <tr><td><kbd>Espaço</kbd>+arrastar · botão do meio</td><td>Mover a vista</td></tr>
         </table>
       </div>
     </div>
@@ -538,6 +588,7 @@
       <div class="w-head"><span class="w-n">Passo 3 de 3</span><h2>Os convidados</h2></div>
       <div class="w-choices col">
         <label class="w-radio"><input type="radio" name="wGuests" value="import" checked><span><b>Importar uma planilha</b><span>Excel, LibreOffice, Google Planilhas (copiar e colar) ou CSV.</span></span></label>
+        <label class="w-radio"><input type="radio" name="wGuests" value="template"><span><b>Baixar o modelo de planilha</b><span>Excel com as colunas certas e listas suspensas; preencha com calma e importe depois.</span></span></label>
         <label class="w-radio"><input type="radio" name="wGuests" value="later"><span><b>Adicionar depois</b><span>Cadastro um a um pela lista de convidados.</span></span></label>
       </div>
     </section>
@@ -560,8 +611,10 @@
 <script src="assets/js/core.js"></script>
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/floor.js"></script>
+<script src="assets/js/plan.js"></script>
 <script src="assets/js/guests.js"></script>
 <script src="assets/js/views.js"></script>
+<script src="assets/js/xlsxw.js"></script>
 <script src="assets/js/io.js"></script>
 <script src="assets/js/main.js"></script>
 </body>

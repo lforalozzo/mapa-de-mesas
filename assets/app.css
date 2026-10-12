@@ -272,7 +272,8 @@ input[type=range] { accent-color: var(--accent); }
   background-image: radial-gradient(circle, #e4e4e7 1px, transparent 1.2px);
   background-size: 20px 20px;
 }
-.floor.no-zones .zone { display: none; }
+.floor.no-zones .zone:not(.mask) { display: none; }
+.floor.no-bg .zone.mask { display: none; }
 .floor.no-chairs .chair { display: none; }
 .floor.no-bg .floor-bg { display: none; }
 
@@ -284,6 +285,14 @@ input[type=range] { accent-color: var(--accent); }
   padding: 4px;
 }
 .zone.ellipse { border-radius: 50%; }
+.zone.mask { border: none; border-radius: 0; padding: 0; background: #fff; }
+.zone.mask.ellipse { border-radius: 50%; }
+.floor.plan .zone.mask { outline: 1.5px dashed color-mix(in srgb, var(--accent) 55%, white); outline-offset: -1px; }
+.floor.plan .zone.mask.zopen { outline: 2px solid var(--accent); background: inherit; }
+.zone.mask.drawing { pointer-events: none; outline: 2px dashed var(--accent) !important; opacity: .9; }
+.viewport.drawing, .viewport.drawing .floor * { cursor: crosshair !important; }
+.fillpick { display: inline-flex; align-items: center; gap: 6px; }
+.fillpick input[type=color] { width: 36px; height: 32px; padding: 2px; border: 1px solid var(--border-2); border-radius: var(--r); background: var(--surface); }
 .zone.text { border-color: transparent; background: transparent; font-size: 15px; color: var(--text-2); }
 .zone span { overflow: hidden; text-overflow: ellipsis; }
 .floor.plan .zone { pointer-events: auto; cursor: move; border-color: color-mix(in srgb, var(--accent) 45%, white); }
@@ -350,6 +359,18 @@ input[type=range] { accent-color: var(--accent); }
 .tspot.dim { opacity: .35; }
 .tspot.dragover .tshape { border-color: var(--accent); box-shadow: 0 0 0 5px var(--accent-ring), var(--shadow-xl); }
 .tspot.selmode .tshape { border-style: dashed; border-color: var(--accent); }
+.tspot.msel .tshape, .floor.plan .tspot.msel .tshape { outline: 2px solid var(--accent); outline-offset: 3px; }
+.zone.msel { outline: 2px solid var(--accent) !important; outline-offset: 2px; }
+.marquee { position: absolute; border: 1.5px dashed var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); pointer-events: none; z-index: 50; }
+.zone.triangle { border: none; background: transparent; }
+.zone.triangle span { position: absolute; left: 8%; right: 8%; bottom: 10%; text-align: center; }
+.zone.triangle .zshape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.zone.triangle .zshape polygon { fill: rgb(250 250 250 / .82); stroke: var(--border-2); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.floor.plan .zone.triangle .zshape polygon { stroke: color-mix(in srgb, var(--accent) 45%, white); }
+.zone.triangle.zopen { background: transparent; }
+.zone.triangle.zopen .zshape polygon { stroke: var(--accent); stroke-dasharray: none; fill: var(--accent-soft); }
+.zone:not(.triangle) span { position: relative; }
+.mp-row { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
 .tspot.swapping { pointer-events: none; z-index: 60; opacity: .88; }
 .tspot.swapping .tshape { box-shadow: var(--shadow-xl); border-color: var(--accent); }
 .floor.plan .tspot { cursor: move; }

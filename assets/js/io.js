@@ -34,7 +34,8 @@ async function readSheets(file) {
   if (/\.(xlsx|xlsm|xls|ods)$/i.test(file.name) || /spreadsheet|excel/i.test(file.type)) {
     await loadScript("vendor/xlsx.full.min.js");
     const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
-    return wb.SheetNames.map((name) => ({
+    const hidden = (i) => !!(wb.Workbook && wb.Workbook.Sheets && wb.Workbook.Sheets[i] && wb.Workbook.Sheets[i].Hidden);
+    return wb.SheetNames.filter((_, i) => !hidden(i)).map((name) => ({
       name,
       rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: "" }).map((r) => r.map((c) => String(c ?? "").trim()))
     })).map(trimSheet).filter((s) => s.rows.length);
@@ -200,6 +201,7 @@ function parseSide(v, def) {
   const n = norm(v);
   if (!n) return def;
   if (imp && imp.sideMap && n in imp.sideMap) return imp.sideMap[n];
+  if (/^sem lado/.test(n)) return "";
   const A = norm(state.event.hostA), B = norm(state.event.hostB);
   if (["a", "lado a", "1", "noivo"].includes(n) || (A && (n === A || n.includes(A)))) return "a";
   if (["b", "lado b", "2", "noiva"].includes(n) || (B && (n === B || n.includes(B)))) return "b";
@@ -418,20 +420,6 @@ function helpRows() {
     ["Observações", "Restrição alimentar, acessibilidade, recados", "Texto livre"],
     ["Código", "Preenchido pela ferramenta ao exportar; mantenha para atualizar a lista depois", "Não altere"]];
 }
-async function downloadTemplate(kind) {
-  if (kind === "csv") { download("modelo-convidados.csv", toCsv(templateRows()), "text/csv;charset=utf-8"); return; }
-  try {
-    await loadScript("vendor/xlsx.full.min.js");
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(templateRows());
-    ws["!cols"] = [32, 9, 14, 14, 14, 16, 13, 8, 15, 18, 30, 12].map((w) => ({ wch: w }));
-    XLSX.utils.book_append_sheet(wb, ws, "Convidados");
-    const hs = XLSX.utils.aoa_to_sheet(helpRows());
-    hs["!cols"] = [{ wch: 22 }, { wch: 60 }, { wch: 52 }];
-    XLSX.utils.book_append_sheet(wb, hs, "Como preencher");
-    XLSX.writeFile(wb, "modelo-convidados.xlsx");
-  } catch (err) { toast("Não foi possível gerar o Excel; baixando o modelo em CSV", { err: true }); downloadTemplate("csv"); }
-}
 $("impTemplate").addEventListener("click", () => downloadTemplate("xlsx"));
 $("impTemplateCsv").addEventListener("click", () => downloadTemplate("csv"));
 
@@ -471,19 +459,70 @@ function summaryRows() {
     ["Mesas", state.tables.length],
     ["Lugares nas mesas", s(state.tables, (t) => t.cap)]];
 }
+/* listas suspensas (aba oculta "Listas") — iguais no modelo e no Excel exportado */
+function listsSheet() {
+  const sides = [sideShort("a"), sideShort("b"), "Dos dois", "Sem lado"];
+  const groups = state.groups.map((g) => g.label);
+  const status = ["Confirmado", "Pendente", "Não vai"];
+  const tables = sortedTables().map((t) => t.label);
+  const yes = ["Sim", "Não"];
+  const n = Math.max(sides.length, groups.length, status.length, tables.length, 2);
+  const rows = [["Lado", "Grupo", "Situação", "Mesa", "Convite"]];
+  for (let i = 0; i < n; i++) rows.push([sides[i] || "", groups[i] || "", status[i] || "", tables[i] || "", yes[i] || ""]);
+  const ref = (c, len) => "Listas!$" + c + "$2:$" + c + "$" + (len + 1);
+  return { sheet: { name: "Listas", rows, hidden: true }, v: { side: ref("A", sides.length), group: ref("B", groups.length), status: ref("C", 3), table: tables.length ? ref("D", tables.length) : null, yes: ref("E", 2) } };
+}
+const GUEST_WIDTHS = [34, 9, 16, 16, 16, 18, 13, 9, 15, 18, 36, 14];
+function guestSheet(rows, L) {
+  return {
+    name: "Convidados", rows, header: true, freeze: true, filter: true, widths: GUEST_WIDTHS,
+    validations: [
+      { col: 1, whole: [0, 30], title: "Adultos", prompt: "Quantos adultos vêm neste convite" },
+      { col: 2, whole: [0, 20], title: "Crianças", prompt: state.event.kidA || "Primeira faixa de idade" },
+      { col: 3, whole: [0, 20], title: "Crianças", prompt: state.event.kidB || "Segunda faixa de idade" },
+      { col: 4, list: L.side, title: "Lado", prompt: "De quem é o convidado" },
+      { col: 5, list: L.group, loose: true, title: "Grupo", prompt: "Escolha da lista ou digite um grupo novo" },
+      { col: 6, list: L.status, title: "Situação", prompt: "Confirmado, Pendente ou Não vai" },
+      L.table ? { col: 7, list: L.table, loose: true, title: "Mesa", prompt: "Número da mesa (pode deixar em branco)" } : null,
+      { col: 8, list: L.yes, title: "Convite enviado", prompt: "Sim ou Não" }
+    ]
+  };
+}
+async function downloadTemplate(kind) {
+  if (kind === "csv") { download("modelo-convidados.csv", toCsv(templateRows()), "text/csv;charset=utf-8"); return; }
+  const L = listsSheet();
+  const help = helpRows();
+  const howRows = [["Como preencher a lista de convidados"], [""]].concat(help, [[""],
+    ["1. Preencha a aba Convidados: uma linha por convite (pessoa, casal ou família)."],
+    ["2. Use as listas suspensas de Lado, Grupo, Situação e Convite. Não mude os títulos das colunas."],
+    ["3. No Mapa de Mesas: Arquivo › Importar convidados e escolha este arquivo."],
+    ["Veja a aba Exemplo para um modelo preenchido."]]);
+  const styles = { 0: 2, 2: 1 };
+  for (let i = help.length + 3; i < howRows.length; i++) styles[i] = 0;
+  const blob = XW.build([
+    guestSheet([canonicalHeaders()], L.v),
+    { name: "Como preencher", rows: howRows, styles, widths: [26, 62, 54], wrap: true },
+    { name: "Exemplo", rows: templateRows(), header: true, freeze: true, widths: GUEST_WIDTHS },
+    L.sheet
+  ], { accent: state.theme.accent });
+  const named = state.event.hostA || state.event.hostB || state.event.title;
+  download("modelo-convidados" + (named ? "-" + fileBase() : "") + ".xlsx", blob);
+  toast("Modelo baixado — preencha a aba Convidados e importe de volta");
+}
 async function exportXlsx() {
   try {
-    await loadScript("vendor/xlsx.full.min.js");
-    const wb = XLSX.utils.book_new();
-    const add = (rows, name, widths) => { const ws = XLSX.utils.aoa_to_sheet(rows); if (widths) ws["!cols"] = widths.map((w) => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
-    add([canonicalHeaders()].concat(guestsSorted().map(guestRow)), "Convidados", [32, 9, 14, 14, 14, 16, 13, 8, 15, 18, 30, 12]);
-    add(byTableRows(), "Por mesa", [10, 20, 32, 8, 8, 12, 12, 14, 16, 12, 30]);
-    add(tablesRows(), "Mesas", [10, 20, 12, 9, 9, 8, 80]);
-    add(findRows(), "Encontre sua mesa", [36, 24]);
-    add(summaryRows(), "Resumo", [30, 12]);
-    wb.Props = { Title: displayTitle(), Author: "Mapa de Mesas" };
-    XLSX.writeFile(wb, fileBase() + "-convidados.xlsx");
-    toast("Planilha Excel gerada");
+    const L = listsSheet();
+    const tbl = (name, rows, widths) => ({ name, rows, widths, header: true, freeze: true, filter: true });
+    const blob = XW.build([
+      guestSheet([canonicalHeaders()].concat(guestsSorted().map(guestRow)), L.v),
+      tbl("Por mesa", byTableRows(), [12, 22, 34, 9, 9, 14, 14, 16, 18, 13, 36]),
+      tbl("Mesas", tablesRows(), [10, 22, 12, 9, 10, 8, 90]),
+      tbl("Encontre sua mesa", findRows(), [40, 26]),
+      Object.assign(tbl("Resumo", summaryRows(), [32, 12]), { filter: false }),
+      L.sheet
+    ], { accent: state.theme.accent });
+    download(fileBase() + "-convidados.xlsx", blob);
+    toast("Planilha Excel gerada — pode editar e importar de volta");
   } catch (err) { console.error(err); toast("Não foi possível gerar o Excel", { err: true }); }
 }
 function exportCsv(kind) {
@@ -518,13 +557,23 @@ function floorSvg(opts) {
   const stroke = { empty: "#d4d4d8", partial: th.accent, full: "#10b981", over: "#f43f5e" };
   let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '" font-family="Segoe UI, Helvetica, Arial, sans-serif">';
   s += '<rect width="' + W + '" height="' + H + '" fill="#ffffff"/>';
-  if (bgData && state.settings.bg) s += '<image href="' + bgData + '" x="0" y="0" width="' + W + '" height="' + H + '" preserveAspectRatio="none" opacity="' + (state.floor.bg ? state.floor.bg.opacity : 0.6) + '"/>';
+  if (bgData && state.settings.bg) {
+    s += '<image href="' + bgData + '" x="0" y="0" width="' + W + '" height="' + H + '" preserveAspectRatio="none" opacity="' + (state.floor.bg ? state.floor.bg.opacity : 0.6) + '"/>';
+    for (const z of state.zones.filter(isMask)) {
+      const x = (z.x / 100) * W, y = (z.y / 100) * H, w = (z.w / 100) * W, h = (z.h / 100) * H;
+      s += z.shape === "maskellipse" ? '<ellipse cx="' + (x + w / 2) + '" cy="' + (y + h / 2) + '" rx="' + w / 2 + '" ry="' + h / 2 + '" fill="' + z.fill + '"/>' : '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + z.fill + '"/>';
+    }
+  }
   if (state.settings.zones) for (const z of state.zones) {
+    if (isMask(z)) continue;
     const x = (z.x / 100) * W, y = (z.y / 100) * H, w = (z.w / 100) * W, h = (z.h / 100) * H;
+    if (z.rot) s += '<g transform="rotate(' + z.rot + " " + (x + w / 2) + " " + (y + h / 2) + ')">';
+    if (z.shape === "triangle") s += '<polygon points="' + (x + w / 2) + "," + y + " " + (x + w) + "," + (y + h) + " " + x + "," + (y + h) + '" fill="#fafafa" fill-opacity=".85" stroke="#a1a1aa" stroke-width="1.5" stroke-dasharray="5 4"/>';
     if (z.shape === "rect") s += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="8" fill="#fafafa" fill-opacity=".85" stroke="#a1a1aa" stroke-width="1.5" stroke-dasharray="5 4"/>';
     if (z.shape === "ellipse") s += '<ellipse cx="' + (x + w / 2) + '" cy="' + (y + h / 2) + '" rx="' + w / 2 + '" ry="' + h / 2 + '" fill="#fafafa" fill-opacity=".85" stroke="#a1a1aa" stroke-width="1.5" stroke-dasharray="5 4"/>';
     const fs = z.shape === "text" ? clamp(h * 0.42, 11, 44) : 12;
-    s += '<text x="' + (x + w / 2) + '" y="' + (y + h / 2) + '" text-anchor="middle" dominant-baseline="central" font-size="' + fs + '" font-weight="600" fill="' + (z.shape === "text" ? "#3f3f46" : "#71717a") + '">' + esc(z.label) + "</text>";
+    s += '<text x="' + (x + w / 2) + '" y="' + (y + h * (z.shape === "triangle" ? 0.66 : 0.5)) + '" text-anchor="middle" dominant-baseline="central" font-size="' + fs + '" font-weight="600" fill="' + (z.shape === "text" ? "#3f3f46" : "#71717a") + '">' + esc(z.label) + "</text>";
+    if (z.rot) s += "</g>";
   }
   for (const t of state.tables) {
     const G = tableGeo(t), cx = (t.x / 100) * W, cy = (t.y / 100) * H;

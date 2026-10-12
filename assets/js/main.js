@@ -14,7 +14,7 @@ function fileMenuItems() {
     { label: "Abrir backup…", icon: "upload", action: () => $("fileJson").click() },
     "-",
     { label: "Importar convidados…", icon: "sheet", desc: "Excel, LibreOffice, CSV ou colar da planilha", action: openImport },
-    { label: "Baixar planilha modelo", icon: "download", action: () => downloadTemplate("xlsx") },
+    { label: "Baixar modelo de planilha", icon: "download", desc: "Excel com as colunas certas e listas suspensas, pronto para preencher e importar", action: () => downloadTemplate("xlsx") },
     "-",
     { label: "Configurar evento…", icon: "gear", action: () => openEventDlg() },
     { label: "Ver um exemplo", icon: "eye", desc: "Abre um evento fictício separado do seu", action: loadDemo },
@@ -131,18 +131,15 @@ document.addEventListener("keydown", (e) => {
   if (mod && !typing) {
     if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
     else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); redo(); }
-    else if (k === "d" && ui.mode === "plan" && ui.view === "salao") {
-      e.preventDefault();
-      const t = tableById(ui.openTableId), z = zoneById(ui.openZoneId);
-      if (t) duplicateTable(t); else if (z) duplicateZone(z);
-    }
+    else if (ui.view === "salao") planKey(e);
     return;
   }
   if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".gcard, .tspot")) { e.preventDefault(); e.target.click(); return; }
   if (e.key === "ContextMenu" && e.target.matches && e.target.matches(".gcard, .tspot, .orow")) { const r = e.target.getBoundingClientRect(); e.preventDefault(); contextFor(e.target, r.left + 20, r.bottom - 4); return; }
   if (typing || e.altKey) return;
   if (e.key === "Escape") {
-    if (ui.selectedId || ui.openTableId || ui.openZoneId) { ui.selectedId = ui.openTableId = ui.openZoneId = null; renderAll(); }
+    if (ui.drawMask) { setDrawMask(false); return; }
+    if (ui.selectedId || ui.openTableId || ui.openZoneId || ui.multi.size) { ui.selectedId = ui.openTableId = ui.openZoneId = null; ui.multi.clear(); renderAll(); }
     else if (ui.mode === "plan") setMode("seat");
     else if (isNarrow() && (sidesOpen.a || sidesOpen.b)) { sidesOpen.a = sidesOpen.b = false; renderSides(); }
     return;
@@ -152,19 +149,11 @@ document.addEventListener("keydown", (e) => {
   if (k === "n") { e.preventDefault(); openGuestModal(null, ""); return; }
   if (ui.view !== "salao") return;
   if (k === "e") { setMode(ui.mode === "plan" ? "seat" : "plan"); return; }
+  if (planKey(e)) return;
   if (k === "f") { animView(); fitView(); return; }
   if (e.key === "+" || e.key === "=") { zoomCenter(1.4); return; }
   if (e.key === "-" || e.key === "_") { zoomCenter(1 / 1.4); return; }
   if (ui.mode !== "plan") return;
-  const t = tableById(ui.openTableId), z = zoneById(ui.openZoneId);
-  if (e.key.startsWith("Arrow") && (t || z)) {
-    e.preventDefault();
-    const st = e.shiftKey ? 5 : 1;
-    nudgeSelected(e.key === "ArrowLeft" ? -st : e.key === "ArrowRight" ? st : 0, e.key === "ArrowUp" ? -st : e.key === "ArrowDown" ? st : 0);
-    return;
-  }
-  if (k === "r" && t) { rotateTable(t, e.shiftKey ? 90 : 15); return; }
-  if ((e.key === "Delete" || e.key === "Backspace") && (t || z)) { e.preventDefault(); if (t) deleteTable(t); else deleteZone(z); }
 });
 function focusSearch() {
   if (ui.view === "lista") { $("lq").focus(); $("lq").select(); return; }

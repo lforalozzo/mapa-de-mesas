@@ -6,7 +6,9 @@ Funciona direto no navegador, também sem internet. **Os dados ficam só no seu 
 
 ## O que dá para fazer
 
-- **Planta do salão** — envie uma foto ou PDF da planta do local e desenhe as mesas por cima (redondas, retangulares, quadradas, ovais), com áreas (pista, bar, palco) e textos. Arraste, gire, redimensione, crie várias mesas de uma vez em grade.
+- **Planta do salão** — envie uma foto ou PDF da planta do local e desenhe as mesas por cima (redondas, retangulares, quadradas, ovais), com áreas (retângulo, oval, triângulo) e textos. Arraste, gire, redimensione, crie várias mesas de uma vez em grade.
+- **Coberturas sobre a planta** — se o PDF já tem mesas desenhadas, a ferramenta *Cobrir* (tecla `C`) desenha retângulos brancos (ou da cor do papel, com conta-gotas) por cima delas, para as mesas da ferramenta não aparecerem duplicadas.
+- **Edição rápida pelo teclado** — `1`–`4` criam mesas e `A`, `O`, `V`, `T` criam áreas e textos onde o ponteiro está; Shift+arrastar seleciona várias mesas para mover, alinhar, distribuir ou mudar lugares e tamanho de uma vez; `Ctrl+C`/`Ctrl+V`, `[`/`]` para lugares, `R` para girar.
 - **Sentar convidados** — clique no convidado e depois na mesa, ou arraste. Arraste uma mesa sobre outra para trocar os grupos. A distribuição automática sugere mesas para quem ficou sem lugar, mantendo juntos o mesmo lado e grupo.
 - **Dois lados** — uma lista para cada pessoa do casal, com as cores de cada lado nas cadeiras.
 - **Crianças por faixa de idade** (ex.: 0 a 5 isentas, 6 a 12 meia), com a opção de crianças pequenas não ocuparem lugar.
@@ -18,7 +20,7 @@ Funciona direto no navegador, também sem internet. **Os dados ficam só no seu 
 
 Aceita Excel (`.xlsx`), LibreOffice (`.ods`), CSV ou linhas coladas de qualquer planilha (inclusive Google Planilhas). As colunas são reconhecidas automaticamente e dá para ajustar antes de importar. Planilhas com várias abas, títulos no topo e totais no fim são tratadas.
 
-Para começar do zero, use o modelo (Arquivo › Baixar planilha modelo). Colunas:
+Para começar do zero, baixe o **modelo Excel** (Arquivo › Baixar modelo de planilha, ou o botão *Modelo Excel* na aba Convidados): cabeçalho pronto, listas suspensas para Lado, Grupo, Situação e Convite, uma aba de instruções e outra com exemplo. Colunas:
 
 | Coluna | Conteúdo |
 |---|---|
@@ -64,18 +66,20 @@ index.html          estrutura e diálogos
 assets/app.css      estilos
 assets/js/core.js   estado, armazenamento, migração, tema
 assets/js/ui.js     menus, dicas, menu de contexto, painéis
-assets/js/floor.js  salão: mesas, áreas, zoom, imagem de fundo
+assets/js/floor.js  salão: mesas, áreas, zoom, imagem de fundo, coberturas
+assets/js/plan.js   edição da planta: seleção múltipla, alinhar, copiar/colar, atalhos
 assets/js/guests.js listas de convidados, seleção, distribuição
 assets/js/views.js  cabeçalho, planilha, resumo, configurações, boas-vindas
+assets/js/xlsxw.js  gerador de .xlsx (modelo e exportação, com listas suspensas)
 assets/js/io.js     importar, exportar, imprimir, backup
 assets/js/main.js   menus, atalhos e inicialização
 vendor/             bibliotecas carregadas sob demanda
 ```
 
-Para testar localmente basta abrir o `index.html`. Publicação: GitHub Pages servindo a branch `main`, pasta raiz.
+Para testar localmente basta abrir o `index.html`. Publicação: GitHub Pages servindo a branch `main`, pasta raiz — https://lforalozzo.github.io/mapa-de-mesas/
 
 ## Créditos
 
 - [PDF.js](https://github.com/mozilla/pdf.js) 3.11 — Apache 2.0
-- [SheetJS Community Edition](https://sheetjs.com) 0.18.5 — Apache 2.0
+- [SheetJS Community Edition](https://sheetjs.com) 0.18.5 (leitura de planilhas) — Apache 2.0
 - Fontes [Inter](https://rsms.me/inter/), [Cormorant Garamond](https://github.com/CatharsisFonts/Cormorant), [Playfair Display](https://github.com/clauseggers/Playfair) e [Great Vibes](https://github.com/googlefonts/great-vibes) — SIL Open Font License

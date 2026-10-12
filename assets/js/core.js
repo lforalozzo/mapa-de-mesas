@@ -108,8 +108,10 @@ function normalizeState(s) {
   }
   for (const z of s.zones) {
     z.id = z.id || uid("z");
-    z.shape = ["rect", "ellipse", "text"].includes(z.shape) ? z.shape : "rect";
+    z.shape = ["rect", "ellipse", "triangle", "text", "mask", "maskellipse"].includes(z.shape) ? z.shape : "rect";
+    z.rot = +z.rot || 0;
     z.label = z.label || "";
+    if (isMask(z)) z.fill = /^#[0-9a-f]{6}$/i.test(z.fill || "") ? z.fill : "#ffffff";
   }
   const gids = new Set(s.groups.map((g) => g.id));
   const tids = new Set(s.tables.map((t) => t.id));
@@ -300,6 +302,8 @@ const persons = (g) => (g.adults || 0) + (g.kidsA || 0) + (g.kidsB || 0); // pes
 const totalKids = (g) => (g.kidsA || 0) + (g.kidsB || 0);
 const occupants = (tid) => state.guests.filter((g) => g.table === tid && going(g));
 const occSeats = (tid) => occupants(tid).reduce((n, g) => n + seats(g), 0);
+/* coberturas: retângulos/círculos que escondem partes da imagem da planta (ex.: mesas já desenhadas no PDF) */
+const isMask = (z) => z.shape === "mask" || z.shape === "maskellipse";
 const isNumLabel = (l) => /^\d+[a-z]?$/i.test(String(l).trim());
 const tableName = (t) => (t ? (isNumLabel(t.label) ? "Mesa " + t.label : t.label || "Mesa") : "");
 const tableFull = (t) => tableName(t) + (t.alias ? " · " + t.alias : "");
