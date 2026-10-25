@@ -7,6 +7,13 @@
 <meta name="description" content="Organize os convidados do casamento nas mesas do salão. Gratuito, funciona offline e os dados ficam só no seu navegador.">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mapa de Mesas — organize os convidados do casamento">
+<meta property="og:description" content="Desenhe as mesas sobre a planta do salão, sente os convidados e tire as contas do buffet. Grátis, sem cadastro, seus dados ficam com você.">
+<meta property="og:image" content="https://lforalozzo.github.io/mapa-de-mesas/assets/og.png">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
@@ -153,6 +160,8 @@
             </div>
           </div>
 
+          <div class="steps" id="steps" hidden></div>
+
           <div class="edit-hint" id="editHint" hidden>
             <span>Editando a planta — arraste para mover, alça no canto redimensiona, botão direito para mais opções</span>
             <button type="button" id="editDone">Concluir</button>
@@ -250,6 +259,7 @@
             <div class="abar-actions">
               <button class="btn" type="button" id="abEdit"><svg class="ic"><use href="#i-pencil"/></svg>Editar</button>
               <button class="btn" type="button" id="abUnseat"><svg class="ic"><use href="#i-unseat"/></svg>Tirar da mesa</button>
+              <button class="btn" type="button" id="abGoing"><svg class="ic"><use href="#i-x"/></svg><span>Não vai</span></button>
               <button class="btn" type="button" id="abMore" aria-label="Mais ações"><svg class="ic"><use href="#i-more"/></svg>Mais</button>
             </div>
           </div>
@@ -258,14 +268,14 @@
         <div class="legend" id="legend">
           <span class="lg-group">
             <span class="lg st-e" data-tip="Nenhum convidado sentado"><i></i>Livre</span>
-            <span class="lg st-p" data-tip="Ainda tem lugar"><i></i>Parcial</span>
-            <span class="lg st-f" data-tip="Todos os lugares ocupados"><i></i>Completa</span>
+            <span class="lg st-p" data-tip="O arco mostra quanto já está ocupado"><i></i>Com vagas</span>
+            <span class="lg st-f" data-tip="Todos os lugares ocupados"><i></i>Cheia</span>
             <span class="lg st-o" data-tip="Mais pessoas que lugares"><i></i>Lotada</span>
           </span>
           <span class="lg-group">
             <span class="lg sd-a"><i></i><span data-role="sname-a">Lado A</span></span>
             <span class="lg sd-b"><i></i><span data-role="sname-b">Lado B</span></span>
-            <span class="lg sd-k" data-tip="Cadeiras de crianças aparecem no mesmo tom, mais claro"><i></i>Crianças</span>
+            <span class="lg sd-k" data-tip="Cadeira de criança: só o contorno, na cor do lado"><i></i>Criança</span>
           </span>
           <span class="lg-hint" id="lgHint"></span>
         </div>
@@ -331,6 +341,7 @@
     <div class="dlg-body">
       <div class="frow"><label for="fNome">Nome</label><input type="text" id="fNome" name="fNome" required placeholder="ex.: João e Maria Silva"></div>
       <div class="fsub">Pessoas</div>
+      <p class="hint">Um cadastro por convite: uma pessoa, um casal ou uma família — e quantas pessoas ele leva.</p>
       <div class="frow"><label for="fAd">Adultos</label><input type="number" id="fAd" name="fAd" min="0" max="30" value="1"></div>
       <div class="frow"><label for="fKA" id="fKALbl">Crianças</label><input type="number" id="fKA" name="fKA" min="0" max="20" value="0"></div>
       <div class="frow"><label for="fKB" id="fKBLbl">Crianças</label><input type="number" id="fKB" name="fKB" min="0" max="20" value="0"></div>
@@ -344,7 +355,8 @@
       <div class="frow"><label for="fInv">Convite enviado</label><label class="switch"><input type="checkbox" id="fInv" name="fInv"><span class="tr"></span></label></div>
       <div class="fsub">Contato e observações</div>
       <div class="frow"><label for="fTel">Telefone</label><input type="tel" id="fTel" name="fTel" placeholder="(00) 00000-0000"></div>
-      <div class="frow"><label for="fNotes">Notas</label><textarea id="fNotes" name="fNotes"></textarea></div>
+      <div class="frow"><label for="fDiet">Restrição alimentar</label><input type="text" id="fDiet" name="fDiet" list="dietList" placeholder="ex.: vegetariano, sem glúten"></div>
+      <div class="frow"><label for="fNotes">Notas</label><textarea id="fNotes" name="fNotes" placeholder="Acessibilidade, recados para o cerimonial…"></textarea></div>
     </div>
     <div class="dlg-foot">
       <button type="button" class="btn danger" id="gDelete">Excluir</button>
@@ -532,6 +544,11 @@
       </div>
     </div>
   </div>
+  <div class="help-about">
+    <h3>Sobre e privacidade</h3>
+    <p>O Mapa de Mesas é gratuito e de código aberto. Ele não tem cadastro, anúncios nem cookies: a lista de convidados fica só neste navegador e nunca é enviada a nenhum servidor. Para guardar uma cópia ou levar a outro aparelho, use <b>Salvar backup</b>.</p>
+    <p><a href="https://github.com/lforalozzo/mapa-de-mesas" target="_blank" rel="noopener">Código no GitHub</a> · <a href="https://github.com/lforalozzo/mapa-de-mesas/issues" target="_blank" rel="noopener">Relatar um problema ou sugerir melhoria</a></p>
+  </div>
   <div class="dlg-foot"><span class="hint">Mapa de Mesas — código aberto, gratuito.</span><span class="spacer"></span><button type="button" class="btn primary" data-close>Fechar</button></div>
 </dialog>
 
@@ -587,9 +604,9 @@
     <section data-w="3" hidden>
       <div class="w-head"><span class="w-n">Passo 3 de 3</span><h2>Os convidados</h2></div>
       <div class="w-choices col">
-        <label class="w-radio"><input type="radio" name="wGuests" value="import" checked><span><b>Importar uma planilha</b><span>Excel, LibreOffice, Google Planilhas (copiar e colar) ou CSV.</span></span></label>
+        <label class="w-radio"><input type="radio" name="wGuests" value="import"><span><b>Importar uma planilha</b><span>Excel, LibreOffice, Google Planilhas (copiar e colar) ou CSV.</span></span></label>
         <label class="w-radio"><input type="radio" name="wGuests" value="template"><span><b>Baixar o modelo de planilha</b><span>Excel com as colunas certas e listas suspensas; preencha com calma e importe depois.</span></span></label>
-        <label class="w-radio"><input type="radio" name="wGuests" value="later"><span><b>Adicionar depois</b><span>Cadastro um a um pela lista de convidados.</span></span></label>
+        <label class="w-radio"><input type="radio" name="wGuests" value="later" checked><span><b>Adicionar depois</b><span>Cadastro um a um pela lista de convidados.</span></span></label>
       </div>
     </section>
   </div>
@@ -600,6 +617,7 @@
   </div>
 </dialog>
 
+<datalist id="dietList"><option value="Vegetariano"><option value="Vegano"><option value="Sem glúten"><option value="Sem lactose"><option value="Alergia a frutos do mar"><option value="Alergia a amendoim"><option value="Menu infantil"></datalist>
 <div class="menu" id="menu" role="menu" hidden></div>
 <div class="tip" id="tip" role="tooltip" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

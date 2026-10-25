@@ -20,7 +20,7 @@ function renderHeader() {
   const c = countdown();
   // a contagem fica num bloco que não encolhe: no celular ela continua visível
   $("brandSub").innerHTML = parts.length || c
-    ? '<span class="bs-rest">' + parts.join(" · ") + "</span>" + (c ? '<b class="bs-cd">' + esc(c) + "</b>" : "")
+    ? '<span class="bs-rest"><span class="bs-long">' + parts.join(" · ") + '</span><span class="bs-short">' + (eventDate() ? esc(new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" }).format(eventDate())) : "") + "</span></span>" + (c ? '<b class="bs-cd">' + esc(c) + "</b>" : "")
     : '<span class="bs-rest">Clique para definir nomes, data e local</span>';
   const { total, seated } = peopleStats();
   $("pgText").innerHTML = "<b class=\"num\">" + nf.format(seated) + "</b> de " + plural(total, "pessoa sentada", "pessoas sentadas");
@@ -36,9 +36,41 @@ function renderHeader() {
   document.querySelectorAll('[data-role="sname-b"]').forEach((e) => { e.textContent = sideShort("b"); });
 }
 
+/* ── Primeiros passos (some quando tudo foi feito ou quando a pessoa fecha) ── */
+function renderSteps() {
+  const box = $("steps");
+  if (!state || ui.view !== "salao" || state.meta.onboarded || state.meta.demo) { box.hidden = true; return; }
+  const real = state.guests.filter((g) => !isStaff(g));
+  const steps = [
+    { done: state.tables.length > 0, t: "Monte o salão", d: "Envie a planta do local ou crie as mesas", act: [["Criar mesas", "many"], ["Enviar planta", "bg-upload"]] },
+    { done: real.length > 0, t: "Adicione os convidados", d: "Um convite por linha: pessoa, casal ou família", act: [["Adicionar", "add-a"], ["Importar planilha", "import"]] },
+    { done: real.some((g) => g.table), t: "Sente os convidados", d: (finePointer() ? "Clique" : "Toque") + " num convidado da lista e depois numa mesa", act: [] },
+    { done: !!state.meta.didExport, t: "Imprima ou exporte", d: "Lista por mesa para o cerimonial e o buffet", act: [["Lista por mesa", "print-mesas"]] }
+  ];
+  const n = steps.filter((s) => s.done).length;
+  if (n === steps.length) { state.meta.onboarded = true; persist(state); box.hidden = true; toast("Primeiros passos concluídos — bom planejamento!"); return; }
+  const next = steps.findIndex((s) => !s.done);
+  box.hidden = false;
+  box.classList.toggle("min", !!ui.stepsMin);
+  box.innerHTML = '<div class="steps-head"><b>Primeiros passos</b><span class="num">' + n + " de " + steps.length + "</span>" +
+    '<button class="iconbtn" type="button" data-steps="min" aria-label="' + (ui.stepsMin ? "Mostrar" : "Recolher") + '">' + ic(ui.stepsMin ? "chev-right" : "chev-down") + "</button>" +
+    '<button class="iconbtn" type="button" data-steps="close" aria-label="Fechar primeiros passos">' + ic("x") + "</button></div>" +
+    (ui.stepsMin ? "" : '<ol class="steps-list">' + steps.map((s, i) =>
+      '<li class="' + (s.done ? "done" : i === next ? "next" : "") + '"><i class="sk">' + (s.done ? ic("check") : i + 1) + '</i><div><b>' + esc(s.t) + "</b>" +
+      (i === next ? '<span>' + esc(s.d) + "</span>" + (s.act.length ? '<div class="sa">' + s.act.map(([l, a], j) => '<button class="btn sm' + (j ? "" : " primary") + '" type="button" data-act="' + a + '">' + esc(l) + "</button>").join("") + "</div>" : "") : "") +
+      "</div></li>").join("") + "</ol>");
+}
+$("steps").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-steps]");
+  if (b && b.dataset.steps === "close") { state.meta.onboarded = true; persist(state); renderSteps(); toast("A ajuda continua no botão ? do topo"); return; }
+  if (b) { ui.stepsMin = !ui.stepsMin; renderSteps(); return; }
+  const a = e.target.closest("[data-act]");
+  if (a) runAction(a.dataset.act);
+});
 function renderAll() {
   if (!state) return;
   renderHeader();
+  renderSteps();
   if (ui.view === "salao") {
     renderSides();
     renderFloor();
@@ -54,6 +86,7 @@ function setView(v) {
   $("vSalao").hidden = v !== "salao";
   $("vLista").hidden = v !== "lista";
   $("vResumo").hidden = v !== "resumo";
+  renderSteps();
   document.querySelectorAll("#vTabs button").forEach((b) => { b.classList.toggle("on", b.dataset.v === v); b.setAttribute("aria-pressed", b.dataset.v === v); });
   closeMenu();
   renderAll();
@@ -63,9 +96,9 @@ function setView(v) {
 /* ── Planilha de convidados ── */
 const L_COLS = [
   ["ck", ""], ["name", "Nome"], ["side", "Lado"], ["group", "Grupo"], ["adults", "Adultos"], ["kidsA", "kidA"], ["kidsB", "kidB"],
-  ["seats", "Pessoas"], ["status", "Situação"], ["table", "Mesa"], ["invited", "Convite"], ["phone", "Telefone"], ["notes", "Notas"], ["act", ""]
+  ["seats", "Pessoas"], ["status", "Situação"], ["table", "Mesa"], ["invited", "Convite"], ["phone", "Telefone"], ["diet", "Restrição"], ["notes", "Notas"], ["act", ""]
 ];
-const COL_LABEL = { name: "Nome", side: "Lado", group: "Grupo", adults: "Adultos", kidsA: "Crianças faixa 1", kidsB: "Crianças faixa 2", status: "Situação", table: "Mesa", invited: "Convite enviado", phone: "Telefone", notes: "Notas" };
+const COL_LABEL = { name: "Nome", side: "Lado", group: "Grupo", adults: "Adultos", kidsA: "Crianças faixa 1", kidsB: "Crianças faixa 2", status: "Situação", table: "Mesa", invited: "Convite enviado", phone: "Telefone", diet: "Restrição alimentar", notes: "Notas" };
 function listMatches() {
   const f = ui.list, q = norm(f.q);
   return state.guests.filter((g) => {
@@ -93,6 +126,7 @@ function listSortVal(g, col) {
     case "table": { const t = g.table && tableById(g.table); const n = t ? parseInt(t.label, 10) : NaN; return t ? (Number.isFinite(n) ? n : 9999) : 99999; }
     case "invited": return g.invited ? 1 : 0;
     case "phone": return g.phone;
+    case "diet": return g.diet;
     case "notes": return g.notes;
   }
   return 0;
@@ -144,6 +178,7 @@ function renderList() {
       '<td style="min-width:150px"><select' + nm("table") + (going(g) ? "" : " disabled") + ">" + tableOpts(g) + "</select></td>" +
       '<td class="ck"><input type="checkbox"' + nm("invited") + (g.invited ? " checked" : "") + ' aria-label="Convite enviado"></td>' +
       '<td style="min-width:140px"><input type="tel"' + nm("phone") + ' value="' + esc(g.phone) + '"></td>' +
+      '<td style="min-width:150px"><input type="text" list="dietList"' + nm("diet") + ' value="' + esc(g.diet) + '"></td>' +
       '<td style="min-width:220px"><input type="text"' + nm("notes") + ' value="' + esc(g.notes) + '"></td>' +
       '<td class="act"><button class="iconbtn" type="button" data-rowmenu="' + id + '" aria-label="Mais ações">' + ic("more") + "</button></td></tr>";
   }).join("");
@@ -199,6 +234,7 @@ $("lBody").addEventListener("change", (e) => {
     case "table": g.table = el.value || null; break;
     case "invited": g.invited = el.checked; break;
     case "phone": g.phone = el.value.trim(); break;
+    case "diet": g.diet = el.value.trim(); break;
     case "notes": g.notes = el.value.trim(); break;
   }
   commit();
@@ -310,7 +346,7 @@ function renderResumo() {
       bar([[pct(okP, okP + pendP), "var(--ok)"], [pct(pendP, okP + pendP), "var(--warn)"]]) +
       '<div class="rrows">' + rrow('<i class="stdot ok"></i>Confirmadas', nf.format(okP), pct(okP, okP + pendP) + "%") +
         rrow('<i class="stdot pend"></i>Pendentes', nf.format(pendP), pct(pendP, okP + pendP) + "%") +
-        rrow('<i class="stdot nao"></i>Não vão', plural(naoG, "convite", "convites")) +
+        rrow('<i class="stdot nao"></i>Não vão', nf.format(sum(byStatus("nao"), persons)), plural(naoG, "convite", "convites")) +
         (invKnown ? rrow("Convites enviados", invitedG + " de " + invKnown, pct(invitedG, invKnown) + "%") : "") + "</div>" +
       (state.settings.kidsASeat ? "" : '<span class="hint">Pessoas, contando bebês no colo. Nas mesas contam ' + plural(sum(go, seats), "lugar", "lugares") + ".</span>") + "</div>" +
     '<div class="rcard"><h3>' + ic("print") + 'Para o buffet<button class="btn sm" type="button" data-print="resumo">Imprimir</button></h3>' +
@@ -319,6 +355,7 @@ function renderResumo() {
         rrow("Crianças " + esc(state.event.kidB || "faixa 2"), nf.format(kB)) +
         rrow("Total de convidados", nf.format(adults + kA + kB), undefined, "total") +
         rrow("Equipe do evento", nf.format(staffP)) + "</div>" +
+      (dietCounts().length ? '<div class="fsub">Restrições alimentares</div><div class="rrows">' + dietCounts().map(([k, n]) => rrow(esc(k), nf.format(n), n === 1 ? "pessoa" : "pessoas")).join("") + "</div>" : "") +
       '<span class="hint">Pessoas que vão (confirmadas e pendentes), sem a equipe. Ainda pendentes: ' + plural(pendP, "pessoa", "pessoas") + ".</span></div>" +
     '<div class="rcard"><h3>' + ic("swap") + "Por lado</h3><div class=\"rrows\">" +
       sideRow("a", sideShort("a")) + sideRow("b", sideShort("b")) + sideRow("ab", "Dos dois") + sideRow("-", "Sem lado") + "</div></div>" +
@@ -549,7 +586,7 @@ function showWStep() {
   document.querySelectorAll("#wSteps section").forEach((s) => { s.hidden = +s.dataset.w !== wStep; });
   $("wFoot").hidden = wStep === 0;
   $("wNext").textContent = wStep === 3 ? "Criar evento" : "Continuar";
-  if (wStep === 1) setTimeout(() => $("wA").focus(), 20);
+  if (wStep === 1 && finePointer()) setTimeout(() => $("wA").focus(), 20);
 }
 $("welcome").addEventListener("cancel", (e) => { if (!state) e.preventDefault(); });
 $("welcome").addEventListener("click", (e) => {
@@ -565,6 +602,8 @@ $("welcome").addEventListener("click", (e) => {
 });
 $("wSw").addEventListener("input", (e) => { if (e.target.dataset.swc) { $("wSw").dataset.c = e.target.value; setAccentVars(e.target.value); } });
 $("welcome").addEventListener("close", () => applyTheme());
+/* digitar a quantidade de mesas marca a opção "Criar mesas em grade" */
+["wQty", "wCap"].forEach((id) => ["focus", "input"].forEach((ev) => $(id).addEventListener(ev, () => { const r = document.querySelector('input[name="wPlan"][value="grid"]'); if (r) r.checked = true; })));
 $("wBack").addEventListener("click", () => { wStep = Math.max(0, wStep - 1); showWStep(); });
 $("wNext").addEventListener("click", () => {
   if (wStep < 3) { wStep++; showWStep(); return; }
@@ -584,12 +623,13 @@ $("wNext").addEventListener("click", () => {
   if (ui.view !== "salao") setView("salao");
   afterStateChange();
   if (plan === "grid") {
+    setMode("plan");
     requestAnimationFrame(() => addManyTables({ qty: clamp(int0($("wQty").value), 1, 200) || 15, shape: "round", cap: clamp(int0($("wCap").value), 1, 40) || 10, start: 1, cols: Math.ceil(Math.sqrt(clamp(int0($("wQty").value), 1, 200) * 1.5)) }));
   }
   if (plan === "bg") { setMode("plan"); $("fileBg").click(); }
   if (guests === "import") openImport();
-  else if (guests === "template") { downloadTemplate("xlsx"); toast("Modelo baixado — quando preencher, use Arquivo › Importar convidados"); }
-  else toast("Evento criado — bom planejamento!");
+  else if (guests === "template") { downloadTemplate("xlsx"); setTimeout(() => toast("Modelo baixado — quando preencher, use Arquivo › Importar convidados"), plan === "grid" ? 4500 : 0); }
+  else if (plan !== "grid") toast("Evento criado — siga os primeiros passos no canto do salão");
 });
 function importLegacy() {
   const legacy = findLegacy();
@@ -604,7 +644,9 @@ function importLegacy() {
 }
 
 /* ── Exemplo fictício ── */
-function loadDemo() {
+/* planta desenhada do salão de exemplo (paredes, palco, bar, colunas) — mostra o recurso de fundo */
+const DEMO_PLAN = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1300 860\" width=\"1300\" height=\"860\" font-family=\"Arial, Helvetica, sans-serif\"><rect width=\"1300\" height=\"860\" fill=\"#ffffff\"/><path d=\"M600 820 H40 V40 H1260 V560 M1260 660 V820 H700\" fill=\"none\" stroke=\"#3f3f46\" stroke-width=\"12\" stroke-linecap=\"square\"/><g stroke=\"#3f3f46\" stroke-width=\"2\" fill=\"#fff\"><rect x=\"34\" y=\"170\" width=\"12\" height=\"90\"/><rect x=\"34\" y=\"380\" width=\"12\" height=\"90\"/><rect x=\"34\" y=\"590\" width=\"12\" height=\"90\"/><rect x=\"170\" y=\"34\" width=\"120\" height=\"12\"/><rect x=\"1010\" y=\"34\" width=\"120\" height=\"12\"/></g><g fill=\"none\" stroke=\"#71717a\" stroke-width=\"1.5\" stroke-dasharray=\"6 4\"><path d=\"M600 820 A100 100 0 0 1 700 820\"/><path d=\"M1260 560 A100 100 0 0 0 1160 660\"/></g><rect x=\"470\" y=\"46\" width=\"360\" height=\"78\" fill=\"#f4f4f5\" stroke=\"#52525b\" stroke-width=\"2\"/><path d=\"M600 124 v12 h100 v-12 M612 136 v10 h76 v-10\" fill=\"none\" stroke=\"#52525b\" stroke-width=\"1.5\"/><path d=\"M46 690 H210 V814\" fill=\"none\" stroke=\"#52525b\" stroke-width=\"16\"/><g fill=\"#3f3f46\"><rect x=\"441\" y=\"291\" width=\"18\" height=\"18\"/><rect x=\"841\" y=\"291\" width=\"18\" height=\"18\"/><rect x=\"441\" y=\"551\" width=\"18\" height=\"18\"/><rect x=\"841\" y=\"551\" width=\"18\" height=\"18\"/></g><g fill=\"#71717a\" font-size=\"17\"><text x=\"650\" y=\"92\" text-anchor=\"middle\">Palco</text><text x=\"120\" y=\"770\" text-anchor=\"middle\">Bar</text><text x=\"1240\" y=\"545\" text-anchor=\"end\">Cozinha</text><text x=\"650\" y=\"848\" text-anchor=\"middle\">Entrada</text></g><g stroke=\"#71717a\" stroke-width=\"2\"><path d=\"M1080 846 h100 M1080 840 v12 M1180 840 v12\"/></g><text x=\"1130\" y=\"838\" fill=\"#71717a\" font-size=\"13\" text-anchor=\"middle\">5 m</text></svg>";
+async function loadDemo() {
   const old = listEvents().find((e) => e.demo);
   if (old) {
     if (state && state.id === old.id) { toast("Você já está no exemplo"); return; }
@@ -621,15 +663,13 @@ function loadDemo() {
   const d = new Date(); d.setDate(d.getDate() + 96);
   Object.assign(s.event, { hostA: "Ana", hostB: "Pedro", date: d.toISOString().slice(0, 10), time: "19:30", venue: "Salão Jardim (exemplo)", city: "Porto Alegre" });
   s.theme.accent = "#0f766e";
-  s.floor = { w: 1300, h: 860, bg: null };
+  const bgKeyDemo = "bg:" + s.id + ":demo";
+  s.floor = { w: 1300, h: 860, bg: { key: bgKeyDemo, name: "planta-exemplo.svg", w: 1300, h: 860, opacity: 0.9 } };
   s.zones = [
-    { id: "z1", label: "Pista de dança", shape: "rect", x: 38, y: 34, w: 24, h: 28 },
-    { id: "z2", label: "Bar", shape: "rect", x: 2, y: 82, w: 14, h: 14 },
-    { id: "z3", label: "Doces", shape: "ellipse", x: 84, y: 82, w: 14, h: 14 },
-    { id: "z4", label: "Palco", shape: "text", x: 42, y: 22, w: 16, h: 6 },
-    { id: "z5", label: "Entrada", shape: "text", x: 44, y: 92, w: 12, h: 5 }
+    { id: "z1", label: "Pista de dança", shape: "rect", x: 38, y: 38, w: 24, h: 26 },
+    { id: "z3", label: "Doces", shape: "ellipse", x: 84, y: 80, w: 12, h: 13 }
   ];
-  const tables = [{ id: "fam", label: "Família", shape: "oval", cap: 10, x: 50, y: 12, scale: 1.1, rot: 0, alias: "Noivos e pais" }];
+  const tables = [{ id: "fam", label: "Família", shape: "oval", cap: 10, x: 50, y: 21, scale: 1.1, rot: 0, alias: "Noivos e pais" }];
   const cols = [10, 20, 30, 70, 80, 90];
   let n = 1;
   for (const y of [32, 52, 72]) for (const x of cols) tables.push({ id: "t" + n, label: String(n), shape: "round", cap: 10, x, y, scale: 1, rot: 0, alias: "" }), n++;
@@ -649,8 +689,9 @@ function loadDemo() {
     const name = couple ? f1 + " e " + f2 + " " + pick(last) : f1 + " " + pick(last);
     const kidsB = couple && rnd() < 0.18 ? 1 : 0, kidsA = couple && rnd() < 0.15 ? 1 : 0;
     const r = rnd();
+    const dr = rnd();
     guests.push(newGuest({
-      name, adults: couple ? 2 : 1, kidsA, kidsB, side, group: pick(groupsBy),
+      name, adults: couple ? 2 : 1, kidsA, kidsB, side, group: pick(groupsBy), diet: dr < 0.06 ? "Vegetariano" : dr < 0.09 ? "Sem glúten" : dr < 0.11 ? "Alergia a frutos do mar" : "",
       status: r < 0.62 ? "ok" : r < 0.92 ? "pend" : "nao", invited: rnd() < 0.85,
       phone: rnd() < 0.7 ? "(51) 9" + String(8000 + Math.floor(rnd() * 1999)) + "-" + String(1000 + Math.floor(rnd() * 8999)) : ""
     }));
@@ -658,6 +699,7 @@ function loadDemo() {
   guests.push(newGuest({ name: "Fotógrafo — Estúdio Luz", adults: 2, group: "staff", status: "ok", invited: true }));
   guests.push(newGuest({ name: "Banda Aurora", adults: 5, group: "staff", status: "ok", invited: true, notes: "Jantar às 21h" }));
   s.guests = guests;
+  await idbPut(bgKeyDemo, { data: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(DEMO_PLAN), w: 1300, h: 860, name: "planta-exemplo.svg" });
   setState(s, { fresh: false });
   // senta ~70% com a mesma lógica do “Distribuir”
   const pend = state.guests.filter((g) => going(g) && !g.table && !isStaff(g)).slice(0, 52);

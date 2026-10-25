@@ -12,6 +12,9 @@ Funciona direto no navegador, também sem internet. **Os dados ficam só no seu 
 - **Sentar convidados** — clique no convidado e depois na mesa, ou arraste. Arraste uma mesa sobre outra para trocar os grupos. A distribuição automática sugere mesas para quem ficou sem lugar, mantendo juntos o mesmo lado e grupo.
 - **Dois lados** — uma lista para cada pessoa do casal, com as cores de cada lado nas cadeiras.
 - **Crianças por faixa de idade** (ex.: 0 a 5 isentas, 6 a 12 meia), com a opção de crianças pequenas não ocuparem lugar.
+- **Restrições alimentares** por convidado (vegetariano, sem glúten, alergias…), somadas no resumo para o buffet e na lista por mesa.
+- **Leitura rápida do salão** — o número e as vagas de cada mesa aparecem grandes; um arco mostra quanto já está ocupado, a mesa cheia fica verde e a lotada vermelha, com as cadeiras a mais desenhadas. Ao selecionar um convidado, as mesas que cabem ele ficam em destaque.
+- **Primeiros passos** guiados no primeiro uso e confirmação de presença por WhatsApp com mensagem pronta.
 - **Resumo** — contagem regressiva, números para o buffet, confirmações, convites enviados, ocupação das mesas e pendências.
 - **Personalização** — nomes, data, local, cor principal, cor de cada lado e fonte do título. Vários eventos no mesmo navegador (útil para cerimonialistas).
 - **Desfazer/refazer** para tudo, atalhos de teclado e menus com botão direito (ou toque longo).
@@ -40,7 +43,7 @@ A exportação para Excel usa as mesmas colunas: dá para exportar, editar no Ex
 
 ## Exportar
 
-- **Imprimir ou salvar em PDF**: lista por mesa, “encontre sua mesa” (ordem alfabética), lista de presença para a recepção, placas das mesas, planta do salão, resumo para o buffet.
+- **Imprimir ou salvar em PDF**: lista por mesa, “encontre sua mesa” (ordem alfabética, com cada pessoa do casal pelo próprio nome), lista de presença para a recepção, placas das mesas, cartões de lugar, planta do salão, resumo para o buffet.
 - **Planilhas**: Excel completo (convidados, por mesa, mesas, resumo) e CSV.
 - **Compartilhar**: imagem da planta (PNG), página “Encontre sua mesa” (um arquivo HTML só com nomes e mesas, para publicar ou mandar aos convidados) e texto por mesa para colar no WhatsApp.
 - **Backup** (`.json`, Ctrl+S): leva tudo, inclusive a imagem da planta, para outro computador.
@@ -55,7 +58,7 @@ Tudo é salvo no armazenamento local do navegador (localStorage e IndexedDB). Is
 
 ## Usar sem internet
 
-Baixe o repositório (Code › Download ZIP), descompacte e abra o `index.html` no navegador. Tudo funciona offline, inclusive leitura de PDF e Excel.
+No site publicado, depois da primeira visita o app abre mesmo sem internet (e pode ser instalado na tela inicial do celular). Também dá para baixar o repositório (Code › Download ZIP), descompactar e abrir o `index.html` direto no navegador — tudo funciona offline, inclusive leitura de PDF e Excel.
 
 ## Desenvolvimento
 

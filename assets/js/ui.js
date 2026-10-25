@@ -54,7 +54,7 @@ function drawMenu() {
     else if (lead) l = '<span class="mcheck"></span>';
     html += '<button type="button" role="menuitem" class="mi' + (it.danger ? " danger" : "") + (it.desc ? " two" : "") + '" data-i="' + i + '"' + (it.disabled ? " disabled" : "") + ">" + l +
       '<span class="ml">' + esc(it.label) + (it.desc ? '<span class="md">' + esc(it.desc) + "</span>" : "") + "</span>" +
-      (it.kbd ? '<span class="mk">' + esc(it.kbd) + "</span>" : "") + (it.sub ? ic("chev-right", "chev") : "") + "</button>";
+      (it.kbd && (finePointer() || !/^(Ctrl|Shift|Del$|F\d|[A-Z0-9]$|[A-Z0-9] |\[|\])/.test(it.kbd)) ? '<span class="mk">' + esc(it.kbd) + "</span>" : "") + (it.sub ? ic("chev-right", "chev") : "") + "</button>";
   });
   menuEl.innerHTML = html;
   menuEl.hidden = false;
@@ -107,6 +107,7 @@ function moveHot(d) {
 }
 function menuKey(e) {
   if (!menuState) return false;
+  if (e.defaultPrevented) return true; // a tecla já foi tratada (ex.: Enter que abriu a lista da busca)
   const hot = menuEl.querySelector(".mi.hot");
   switch (e.key) {
     case "Escape":
@@ -129,7 +130,8 @@ document.addEventListener("pointerdown", (e) => {
   if (menuState.anchor && menuState.anchor.contains(e.target)) return;
   closeMenu();
 }, true);
-window.addEventListener("resize", closeMenu);
+let menuW = window.innerWidth;
+window.addEventListener("resize", () => { if (Math.abs(window.innerWidth - menuW) > 40) closeMenu(); menuW = window.innerWidth; });
 window.addEventListener("blur", closeMenu);
 /* botão que abre menu suspenso */
 function bindMenuButton(btn, items, align) {
@@ -170,7 +172,8 @@ function showTip(el) {
   else if (el.classList.contains("gcard") || el.classList.contains("orow")) {
     html = guestTip(guestById(el.dataset.id));
     const side = el.closest(".side");
-    prefs = side && side.dataset.side === "b" ? ["left", "right", "below"] : el.classList.contains("orow") ? ["left", "right", "below"] : ["right", "left", "below"];
+    // abaixo/acima do card, para não cobrir o salão onde fica a mesa de destino
+    prefs = el.classList.contains("orow") ? ["left", "right", "below"] : ["below", "above", side && side.dataset.side === "b" ? "left" : "right"];
   } else if (el.dataset.tip) {
     html = "<div>" + esc(el.dataset.tip) + (el.dataset.kbd ? "<kbd>" + esc(el.dataset.kbd) + "</kbd>" : "") + "</div>";
   }
@@ -230,6 +233,7 @@ document.addEventListener("pointermove", (e) => {
   if (longPress && Math.hypot(e.clientX - longPress.x, e.clientY - longPress.y) > 10) { clearTimeout(longPress.t); longPress = null; }
 }, true);
 const endLong = () => { if (longPress) { clearTimeout(longPress.t); longPress = null; } };
+function cancelLongPress() { endLong(); }
 document.addEventListener("pointerup", endLong, true);
 document.addEventListener("pointercancel", endLong, true);
 document.addEventListener("click", (e) => {
@@ -244,7 +248,7 @@ document.addEventListener("click", (e) => {
 /* clicar no fundo escurecido fecha (exceto boas-vindas e confirmação) */
 document.querySelectorAll("dialog").forEach((d) => {
   d.addEventListener("pointerdown", (e) => {
-    if (e.target !== d || d.id === "welcome" || d.id === "askdlg") return;
+    if (e.target !== d || ["welcome", "askdlg", "gdlg", "impdlg", "manydlg"].includes(d.id)) return;
     const r = d.getBoundingClientRect();
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close();
   });

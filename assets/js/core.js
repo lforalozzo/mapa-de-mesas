@@ -32,8 +32,9 @@ const ACCENTS = [
   ["#a16207", "Dourado"], ["#c2410c", "Terracota"], ["#be185d", "Rosa"], ["#9f1239", "Vinho"],
   ["#7c3aed", "Violeta"], ["#3f3f46", "Grafite"]
 ];
+/* as duas primeiras (azul e laranja) continuam distintas para quem tem daltonismo */
 const SIDE_COLORS = [
-  ["#0ea5e9", "Azul-céu"], ["#d946ef", "Fúcsia"], ["#10b981", "Esmeralda"], ["#f59e0b", "Âmbar"],
+  ["#0072b2", "Azul"], ["#d55e00", "Laranja"], ["#0ea5e9", "Azul-céu"], ["#d946ef", "Fúcsia"], ["#10b981", "Esmeralda"], ["#f59e0b", "Âmbar"],
   ["#f43f5e", "Coral"], ["#8b5cf6", "Lavanda"], ["#14b8a6", "Turquesa"], ["#64748b", "Ardósia"]
 ];
 const TITLE_FONTS = [
@@ -45,6 +46,17 @@ const TITLE_FONTS = [
 const SHAPES = { round: "Redonda", rect: "Retangular", square: "Quadrada", oval: "Oval" };
 const DEFAULT_CAP = { round: 10, rect: 12, square: 8, oval: 10 };
 const STATUS = { ok: "Confirmado", pend: "Pendente", nao: "Não vai" };
+const DIETS = ["Vegetariano", "Vegano", "Sem glúten", "Sem lactose", "Alergia a frutos do mar", "Alergia a amendoim", "Menu infantil"];
+/* agrupa as restrições alimentares de quem vai: [["Vegetariano", 4], ...] (conta pessoas do convite) */
+function dietCounts() {
+  const m = new Map();
+  for (const g of state.guests) {
+    if (!going(g) || !g.diet) continue;
+    const k = g.diet.trim().replace(/^./, (c) => c.toUpperCase());
+    m.set(k, (m.get(k) || 0) + persons(g));
+  }
+  return [...m].sort((a, b) => b[1] - a[1]);
+}
 
 const DEFAULT_SETTINGS = { chairs: true, zones: true, bg: true, names: "auto", kidsASeat: true, snap: true, sideA: true, sideB: true };
 const defaultGroups = () => [
@@ -62,7 +74,7 @@ function blankState() {
     schema: SCHEMA,
     id: uid("e"),
     event: { hostA: "", hostB: "", title: "", date: "", time: "", venue: "", city: "", kidA: "0 a 5 anos", kidB: "6 a 12 anos" },
-    theme: { accent: "#9f4a5e", colorA: "#0ea5e9", colorB: "#d946ef", titleFont: "cormorant" },
+    theme: { accent: "#9f4a5e", colorA: "#0072b2", colorB: "#d55e00", titleFont: "cormorant" },
     groups: defaultGroups(),
     floor: { w: 1300, h: 900, bg: null },
     tables: [],
@@ -76,7 +88,7 @@ function blankState() {
 function newGuest(over) {
   return Object.assign({
     id: uid("g"), name: "", adults: 1, kidsA: 0, kidsB: 0, phone: "",
-    invited: false, status: "pend", side: "", group: "amigos", table: null, notes: ""
+    invited: false, status: "pend", side: "", group: "amigos", table: null, diet: "", notes: ""
   }, over || {});
 }
 
@@ -123,6 +135,7 @@ function normalizeState(s) {
     g.kidsB = int0(g.kidsB);
     g.phone = g.phone || "";
     g.notes = g.notes || "";
+    g.diet = String(g.diet || "").trim();
     g.invited = g.invited === null || g.invited === undefined ? null : !!g.invited; // null = não informado
     g.status = STATUS[g.status] ? g.status : "pend";
     g.side = ["a", "b", "ab"].includes(g.side) ? g.side : "";
@@ -456,14 +469,22 @@ function toast(msg, opts) {
   el.classList.toggle("err", !!opts.err);
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), opts.action ? 5000 : 2800);
+  // tempo proporcional ao texto; parado enquanto o mouse está em cima
+  const ms = clamp(2200 + msg.length * 45, 2800, 9000) + (opts.action ? 2000 : 0);
+  el._ms = ms;
+  toastTimer = setTimeout(() => el.classList.remove("show"), ms);
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const el = $("toast");
+  el.addEventListener("mouseenter", () => clearTimeout(toastTimer));
+  el.addEventListener("mouseleave", () => { clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 1500); });
+});
 /* confirmação no estilo da ferramenta (no lugar do confirm() nativo) */
-function ask(title, body, { ok = "Confirmar", danger = false, cancel = "Cancelar" } = {}) {
-  return choose(title, body, [{ v: "no", label: cancel }, { v: "yes", label: ok, primary: !danger, danger }]).then((v) => v === "yes");
+function ask(title, body, { ok = "Confirmar", danger = false, cancel = "Cancelar", focusCancel = false } = {}) {
+  return choose(title, body, [{ v: "no", label: cancel }, { v: "yes", label: ok, primary: !danger, danger }], focusCancel).then((v) => v === "yes");
 }
 /* diálogo com vários botões; Esc ou fechar devolve null */
-function choose(title, body, buttons) {
+function choose(title, body, buttons, focusFirst) {
   return new Promise((resolve) => {
     const d = $("askdlg");
     $("askTitle").textContent = title;
@@ -473,8 +494,8 @@ function choose(title, body, buttons) {
     d.returnValue = "";
     d.addEventListener("close", function h() { d.removeEventListener("close", h); resolve(d.returnValue || null); });
     d.showModal();
-    const last = foot.querySelector("button:last-child");
-    if (last) last.focus();
+    const btn = foot.querySelector(focusFirst ? "button" : "button:last-child");
+    if (btn) btn.focus();
   });
 }
 

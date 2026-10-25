@@ -10,11 +10,12 @@ const floorBgEl = $("floorBg");
 const FW = () => state.floor.w || 1300;
 const FH = () => state.floor.h || 900;
 let fit = 1, zoom = 1, tx = 0, ty = 0;
+let nameFont = 6.5; // fonte lógica dos nomes nas mesas; ajustada ao zoom para dar ≈10px na tela
 let bgVersion = 0, bgShown = -1;
 
 /* ── Geometria: corpo da mesa + posição de cada cadeira (relativas ao centro) ── */
 function tableGeo(t) {
-  const k = clamp(t.scale || 1, 0.5, 2.5);
+  const k = clamp((t.scale || 1) * ((state && state.floor.tscale) || 1), 0.3, 4);
   const cap = t.cap;
   const chairs = [];
   let w, h;
@@ -64,10 +65,40 @@ function hitTables() {
   return hits;
 }
 
+/* corpo da mesa em SVG: contorno de base + arco de ocupação (parcial) + halo de seleção */
+function tableBodySvg(t, G, st, frac) {
+  const w = G.w, h = G.h, i = 1.6;
+  const round = t.shape === "round" || t.shape === "oval";
+  const shp = (cls, d, extra) => round
+    ? '<ellipse class="' + cls + '" cx="' + (w / 2).toFixed(1) + '" cy="' + (h / 2).toFixed(1) + '" rx="' + (w / 2 - d).toFixed(1) + '" ry="' + (h / 2 - d).toFixed(1) + '"' + (extra || "") + "/>"
+    : '<rect class="' + cls + '" x="' + d.toFixed(1) + '" y="' + d.toFixed(1) + '" width="' + (w - 2 * d).toFixed(1) + '" height="' + (h - 2 * d).toFixed(1) + '" rx="' + Math.max(2, 6 - d) + '"' + (extra || "") + "/>";
+  let s = '<svg class="tshape" width="' + w.toFixed(0) + '" height="' + h.toFixed(0) + '" viewBox="0 0 ' + w.toFixed(1) + " " + h.toFixed(1) + '" aria-hidden="true">' + shp("th", -4.5) + shp("tb", i);
+  if (st === "partial") {
+    // começa no topo (redonda) / canto superior (retangular) e anda no sentido horário
+    const start = t.shape === "round" ? ' transform="rotate(-90 ' + (w / 2).toFixed(1) + " " + (h / 2).toFixed(1) + ')"' : "";
+    s += shp("tp", i, ' pathLength="100" stroke-dasharray="' + (frac * 100).toFixed(1) + ' 100"' + start);
+  }
+  return s + "</svg>";
+}
+/* cadeiras além da lotação: segundo anel, em vermelho */
+function extraChairs(t, G, extra, cx, cy) {
+  if (extra <= 0) return "";
+  const out = [];
+  const n = Math.min(extra, 16);
+  if (t.shape === "round" || t.shape === "oval") {
+    const rx = G.w / 2 + 19, ry = G.h / 2 + 19;
+    for (let k = 0; k < n; k++) { const a = -Math.PI / 2 + ((k - (n - 1) / 2) * 0.36); out.push([rx * Math.cos(a), ry * Math.sin(a)]); }
+  } else {
+    const y = -(G.h / 2 + 19), span = Math.min(G.w, n * 13);
+    for (let k = 0; k < n; k++) out.push([n === 1 ? 0 : -span / 2 + (k * span) / (n - 1), y]);
+  }
+  return out.map(([x, y]) => '<i class="chair xs" style="left:' + (cx + x).toFixed(1) + "px;top:" + (cy + y).toFixed(1) + 'px"></i>').join("");
+}
 function tspotHtml(t, hits) {
   const G = tableGeo(t);
   const occ = occupants(t.id);
   const n = occ.reduce((s, g) => s + seats(g), 0);
+  const free = t.cap - n;
   const st = n === 0 ? "empty" : n > t.cap ? "over" : n === t.cap ? "full" : "partial";
   const fills = seatFills(occ);
   const cx = G.W / 2, cy = G.H / 2;
@@ -75,7 +106,8 @@ function tspotHtml(t, hits) {
   const BW = Math.abs(Math.cos(rad)) * G.W + Math.abs(Math.sin(rad)) * G.H;
   const BH = Math.abs(Math.sin(rad)) * G.W + Math.abs(Math.cos(rad)) * G.H;
   const chairs = G.chairs.map(([x, y], i) =>
-    '<i class="chair' + (i < fills.length ? " " + fills[i] : "") + '" style="left:' + (cx + x).toFixed(1) + "px;top:" + (cy + y).toFixed(1) + 'px"></i>').join("");
+    '<i class="chair' + (i < fills.length ? " " + fills[i] : "") + '" style="left:' + (cx + x).toFixed(1) + "px;top:" + (cy + y).toFixed(1) + 'px"></i>').join("") +
+    extraChairs(t, G, n - t.cap, cx, cy);
   const rot = (((t.rot || 0) % 360) + 360) % 360;
   const sideways = (rot > 45 && rot < 135) || (rot > 225 && rot < 315);
   let lw, lh;
@@ -83,31 +115,36 @@ function tspotHtml(t, hits) {
   else if (t.shape === "oval") { lw = G.w * 0.76; lh = G.h * 0.92; }
   else { lw = G.w - 8; lh = G.h - 4; }
   if (sideways && t.shape !== "round" && t.shape !== "square") [lw, lh] = [lh, lw];
-  const wide = lw > 92;
+  // nomes: fonte com tamanho fixo NA TELA (≈10px), então aproximar o zoom mostra mais nomes
+  const lineH = nameFont * 1.3;
+  const wide = lw > nameFont * 15;
   const stacked = t.shape === "round" || t.shape === "square" || lh > lw * 0.9;
-  const rows = Math.max(1, Math.floor((lh - (stacked ? 30 : 16)) / 8.5));
+  const rows = Math.max(1, Math.floor((lh - (stacked ? 26 : 14)) / lineH));
   const maxN = rows * (wide ? 2 : 1);
-  let names;
-  if (!occ.length) names = '<span class="tfree">Livre · ' + t.cap + " lugares</span>";
-  else {
+  let names = "";
+  if (occ.length) {
     let shown = occ, more = 0;
     if (occ.length > maxN) { shown = occ.slice(0, Math.max(1, maxN - 1)); more = occ.length - shown.length; }
     names = '<div class="tnames' + (wide ? " two" : "") + '">' + shown.map((g) =>
       "<span>" + (totalKids(g) ? '<i class="kd"></i>' : "") + esc(shortName(g.name)) + ' <span class="gseat">·' + seats(g) + "</span></span>").join("") +
       (more ? '<span class="more">+ ' + more + "</span>" : "") + "</div>";
   }
+  const sub = st === "empty" ? t.cap + " lugares" : st === "partial" ? plural(free, "livre", "livres") : st === "full" ? "cheia" : -free + " a mais";
   const num = '<span class="tnum' + (String(t.label).length > 3 ? " long" : "") + '">' + esc(t.label) + "</span>";
-  const tag = '<span class="tocc num">' + n + "/" + t.cap + "</span>";
+  const tag = '<span class="tsub">' + esc(sub) + "</span>";
   const alias = t.alias ? '<span class="talias">' + esc(t.alias) + "</span>" : "";
-  const label = stacked ? num + alias + names + tag : '<span class="thead">' + num + tag + "</span>" + alias + names;
+  const label = num + tag + alias + names;
+  let fit = "";
+  const sel = ui.selectedId && ui.mode === "seat" && guestById(ui.selectedId);
+  if (sel) { const need = seats(sel); fit = free + (sel.table === t.id ? need : 0) >= need ? " fits" : " nofit"; }
   const cls = "tspot " + t.shape + " " + st +
-    (t.id === ui.openTableId ? " open" : hits.has(t.id) ? " hit" : "") + (ui.multi && ui.multi.has("t:" + t.id) ? " msel" : "") +
-    (ui.selectedId && ui.mode === "seat" ? " selmode" : "");
-  const aria = tableName(t) + (t.alias ? ", " + t.alias : "") + ", " + n + " de " + t.cap + " lugares";
+    (t.id === ui.openTableId ? " open" : hits.has(t.id) ? " hit" : "") + (ui.multi && ui.multi.has("t:" + t.id) ? " msel" : "") + fit;
+  const aria = tableName(t) + (t.alias ? ", " + t.alias : "") + ", " + n + " de " + t.cap + " lugares, " + sub;
   return '<div class="' + cls + '" data-id="' + t.id + '" role="button" tabindex="0" aria-label="' + esc(aria) + '" style="left:' + ((t.x / 100) * FW()).toFixed(1) + "px;top:" + ((t.y / 100) * FH()).toFixed(1) + "px;width:" + BW.toFixed(0) + "px;height:" + BH.toFixed(0) + 'px">' +
     '<div class="trot" style="width:' + G.W.toFixed(0) + "px;height:" + G.H.toFixed(0) + "px;left:" + ((BW - G.W) / 2).toFixed(1) + "px;top:" + ((BH - G.H) / 2).toFixed(1) + "px" + (rot ? ";transform:rotate(" + rot + "deg)" : "") + '">' + chairs +
-    '<div class="tshape" style="width:' + G.w.toFixed(0) + "px;height:" + G.h.toFixed(0) + 'px"></div></div>' +
+    tableBodySvg(t, G, st, Math.min(1, n / t.cap)) + "</div>" +
     '<div class="tlabel" style="width:' + lw.toFixed(0) + "px;height:" + lh.toFixed(0) + 'px">' + label + "</div>" +
+    (st === "over" ? '<i class="tbadge">+' + -free + "</i>" : "") +
     '<i class="handle" aria-hidden="true"></i></div>';
 }
 function zoneHtml(z) {
@@ -147,6 +184,7 @@ function renderFloor() {
   floorEl.classList.toggle("no-chairs", !state.settings.chairs);
   floorEl.classList.toggle("no-zones", !state.settings.zones && !plan);
   floorEl.classList.toggle("no-bg", !state.settings.bg);
+  floorEl.classList.toggle("has-bg", !!bgData && !!state.settings.bg);
   vp.classList.toggle("plan", plan);
   if (bgData) {
     if (bgShown !== bgVersion) { floorBgEl.src = bgData; bgShown = bgVersion; }
@@ -162,10 +200,19 @@ function renderFloor() {
 
 /* ── Zoom e deslocamento ── */
 const scaleNow = () => fit * zoom;
+let nameTimer = null;
 function setLvl() {
   const mode = state.settings.names, s = scaleNow();
-  floorEl.dataset.lvl = mode === "always" ? "near" : mode === "never" ? "far" : s < 1.25 ? "far" : s < 2.2 ? "mid" : "near";
+  floorEl.dataset.lvl = mode === "always" ? "near" : mode === "never" ? "far" : s < 0.95 ? "far" : s < 1.7 ? "mid" : "near";
   $("zoomLbl").textContent = Math.round(zoom * 100) + "%";
+  const nf2 = Math.round(clamp(9.5 / s, 3.2, 7) * 2) / 2;
+  if (nf2 !== nameFont) {
+    nameFont = nf2;
+    floorEl.style.setProperty("--nfs", nameFont + "px");
+    // redesenha quando o zoom assenta (quantos nomes cabem depende do tamanho da fonte)
+    clearTimeout(nameTimer);
+    nameTimer = setTimeout(() => { if (!tableDrag && !zoneDrag && !groupDrag && !swapDrag && !marquee && !maskDraw && !tableResize && !zoneResize) renderFloor(); }, 120);
+  }
 }
 function clampPan() {
   const r = vp.getBoundingClientRect();
@@ -176,11 +223,14 @@ function clampPan() {
 function applyView() {
   clampPan();
   floorEl.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + scaleNow() + ")";
+  floorEl.style.setProperty("--inv", (1 / scaleNow()).toFixed(3)); // alças com tamanho fixo na tela
+  const r = vp.getBoundingClientRect();
+  vp.classList.toggle("nopan", FW() * scaleNow() <= r.width + 1 && FH() * scaleNow() <= r.height + 1);
   setLvl();
 }
 function animView() { floorEl.classList.add("anim"); setTimeout(() => floorEl.classList.remove("anim"), 380); }
 function contentBox() {
-  if (bgData || (!state.tables.length && !state.zones.length)) return { x: 0, y: 0, w: FW(), h: FH() };
+  if ((bgData && !isNarrow()) || (!state.tables.length && !state.zones.length)) return { x: 0, y: 0, w: FW(), h: FH() };
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const t of state.tables) {
     const G = tableGeo(t), cx = (t.x / 100) * FW(), cy = (t.y / 100) * FH(), m = Math.max(G.W, G.H) / 2;
@@ -223,7 +273,7 @@ function centerOn(tid, zTarget) {
   zoom = Math.max(zoom, zTarget || 1.8);
   const s = scaleNow();
   tx = r.width / 2 - (t.x / 100) * FW() * s;
-  ty = r.height / 2 - (t.y / 100) * FH() * s;
+  ty = (r.height - occludedBottom()) / 2 - (t.y / 100) * FH() * s;
   animView();
   applyView();
 }
@@ -233,10 +283,13 @@ function clientToPct(cx, cy) {
 }
 function viewCenterPct() { const r = vp.getBoundingClientRect(); return clientToPct(r.left + r.width / 2, r.top + r.height / 2); }
 vp.addEventListener("wheel", (e) => {
+  if (e.target.closest(".fpanel, .steps, .abar, .zoomctl, .empty-floor")) return; // rolar o painel, não o mapa
   e.preventDefault();
   const r = vp.getBoundingClientRect();
-  if (e.ctrlKey || Math.abs(e.deltaY) >= Math.abs(e.deltaX)) zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016)));
-  else { tx -= e.deltaX; applyView(); }
+  // trackpad (dois dedos) move a vista; pinça no trackpad (ctrl) e roda do mouse dão zoom
+  const trackpad = !e.ctrlKey && e.deltaMode === 0 && (e.deltaX !== 0 || (Math.abs(e.deltaY) < 50 && !Number.isInteger(e.deltaY)));
+  if (trackpad) { tx -= e.deltaX; ty -= e.deltaY; applyView(); return; }
+  zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016)));
 }, { passive: false });
 
 /* ── Ponteiro: arrastar fundo, mesas, áreas; pinça para zoom ── */
@@ -244,6 +297,7 @@ const ptrs = new Map();
 let panStart = null, pinchStart = null, panMoved = false;
 let tableDrag = null, tableResize = null, zoneDrag = null, zoneResize = null, swapDrag = null, maskDraw = null, groupDrag = null, marquee = null;
 const floorBusy = () => panMoved && ptrs.size > 0;
+const dragging = () => !!(tableDrag || tableResize || zoneDrag || zoneResize || swapDrag || maskDraw || groupDrag || marquee);
 function clientToPctRaw(cx, cy) {
   const r = vp.getBoundingClientRect(), s = scaleNow();
   return { x: clamp((((cx - r.left - tx) / s) / FW()) * 100, 0, 100), y: clamp((((cy - r.top - ty) / s) / FH()) * 100, 0, 100) };
@@ -260,85 +314,138 @@ function setDrawMask(on) {
 // redireciona o clique para o viewport e a mesa nunca recebe o click.
 const capture = (id) => { try { vp.setPointerCapture(id); } catch (err) { /* ponteiro já solto */ } };
 const snapPx = (v, e) => (state.settings.snap && !(e && e.altKey) ? Math.round(v / SNAP) * SNAP : v);
+const moveTh = (e) => (e.pointerType === "touch" ? 10 : 5); // dedo treme mais que o mouse
 
+/* cancela qualquer arrasto em curso e devolve tudo ao lugar (Esc, segundo dedo, toque longo, troca de janela) */
 function floorCancel() {
+  if (tableDrag) { tableDrag.t.x = tableDrag.ox; tableDrag.t.y = tableDrag.oy; }
+  if (zoneDrag) { zoneDrag.z.x = zoneDrag.ox; zoneDrag.z.y = zoneDrag.oy; }
+  if (tableResize) tableResize.t.scale = tableResize.o;
+  if (zoneResize) { zoneResize.z.w = zoneResize.ow; zoneResize.z.h = zoneResize.oh; }
+  if (groupDrag) groupDrag.its.forEach((g) => setCenter(g.it, g.c.x, g.c.y));
+  const had = dragging();
   tableDrag = tableResize = zoneDrag = zoneResize = groupDrag = null;
   if (marquee) { marquee.el.remove(); marquee = null; }
   if (maskDraw) { maskDraw.el.remove(); maskDraw = null; }
   if (swapDrag) { swapDrag.el.classList.remove("swapping"); swapDrag = null; }
   panStart = null; pinchStart = null; panMoved = false;
   ptrs.clear();
-  vp.classList.remove("panning");
+  vp.classList.remove("panning", "dragging");
+  hideTip();
+  if (had) renderFloor();
+}
+/* perto da borda, a vista anda sozinha durante o arrasto */
+function edgePan(cx, cy) {
+  const r = vp.getBoundingClientRect(), m = 40, st = 14;
+  const dx = cx < r.left + m ? st : cx > r.right - m ? -st : 0;
+  const dy = cy < r.top + m ? st : cy > r.bottom - m ? -st : 0;
+  if (dx || dy) { tx += dx; ty += dy; applyView(); }
+}
+function resizeTip(text, cx, cy) {
+  tipEl.innerHTML = "<div>" + esc(text) + "</div>";
+  tipEl.hidden = false;
+  tipEl.style.left = cx + 16 + "px";
+  tipEl.style.top = cy + 16 + "px";
 }
 
 let spaceHeld = false;
 document.addEventListener("keydown", (e) => { if (e.code === "Space" && !/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(e.target.tagName) && !e.target.matches(".gcard, .tspot") && ui.view === "salao" && !document.querySelector("dialog[open]")) { spaceHeld = true; vp.classList.add("panning"); e.preventDefault(); } });
 document.addEventListener("keyup", (e) => { if (e.code === "Space") { spaceHeld = false; if (!panStart) vp.classList.remove("panning"); } });
 vp.addEventListener("pointerdown", (e) => {
-  if (e.target.closest(".fpanel, .abar, .zoomctl, .edit-hint button, .empty-floor")) return;
+  if (ptrs.size === 0) panMoved = false; // um gesto novo nunca herda o "arrastou" do anterior
+  if (e.target.closest(".fpanel, .abar, .zoomctl, .edit-hint button, .empty-floor, .steps")) return;
   if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 1) return;
   if (e.button === 1) e.preventDefault();
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (ptrs.size === 1 && (e.button === 1 || spaceHeld)) { panMoved = false; panStart = { x: e.clientX, y: e.clientY, tx, ty }; return; }
-  if (ptrs.size === 1) {
-    panMoved = false;
-    const spot = e.target.closest(".tspot");
-    const zEl = e.target.closest(".zone");
-    if (ui.mode === "plan" && ui.drawMask && !e.target.closest(".handle")) {
-      const el = document.createElement("div");
-      el.className = "zone mask drawing";
-      itemsEl.appendChild(el);
-      maskDraw = { p0: clientToPctRaw(e.clientX, e.clientY), sx: e.clientX, sy: e.clientY, el };
-      return;
+  if (ptrs.size === 2) {
+    // segundo dedo: a pinça sempre vence — desfaz o arrasto que tinha começado
+    if (dragging()) {
+      const keep = new Map(ptrs);
+      floorCancel();
+      keep.forEach((v, k) => ptrs.set(k, v));
     }
-    if (ui.mode === "plan" && e.shiftKey && !spot && !zEl) {
-      const el = document.createElement("div");
-      el.className = "marquee";
-      itemsEl.appendChild(el);
-      marquee = { p0: clientToPctRaw(e.clientX, e.clientY), sx: e.clientX, sy: e.clientY, el };
-      return;
-    }
-    if (ui.mode === "plan" && !e.shiftKey && ui.multi.size > 1 && !e.target.closest(".handle")) {
-      const k = spot ? "t:" + spot.dataset.id : zEl ? "z:" + zEl.dataset.zid : null;
-      if (k && ui.multi.has(k)) {
-        const its = itemsOf([...ui.multi]).map((it) => ({ it, c: centerOf(it), el: itemsEl.querySelector(it.kind === "t" ? '.tspot[data-id="' + it.o.id + '"]' : '.zone[data-zid="' + it.o.id + '"]') }));
-        groupDrag = { its, anchor: its.find((x) => keyOf(x.it.kind, x.it.o.id) === k), sx: e.clientX, sy: e.clientY };
-        return;
-      }
-    }
-    if (ui.mode === "plan") {
-      const h = e.target.closest(".handle");
-      if (h && spot) { const t = tableById(spot.dataset.id); tableResize = { t, sx: e.clientX, sy: e.clientY, o: t.scale || 1 }; return; }
-      if (h && zEl) { const z = zoneById(zEl.dataset.zid); zoneResize = { z, el: zEl, sx: e.clientX, sy: e.clientY, ow: z.w, oh: z.h }; return; }
-      if (spot) { const t = tableById(spot.dataset.id); tableDrag = { t, el: spot, sx: e.clientX, sy: e.clientY, ox: t.x, oy: t.y }; return; }
-      if (zEl) { const z = zoneById(zEl.dataset.zid); zoneDrag = { z, el: zEl, sx: e.clientX, sy: e.clientY, ox: z.x, oy: z.y }; return; }
-    } else if (spot) {
-      const t = tableById(spot.dataset.id);
-      swapDrag = { t, el: spot, sx: e.clientX, sy: e.clientY, ox: (t.x / 100) * FW(), oy: (t.y / 100) * FH(), target: null };
-      return;
-    }
-    panStart = { x: e.clientX, y: e.clientY, tx, ty };
-  } else if (ptrs.size === 2) {
-    if (tableDrag || zoneDrag || zoneResize || tableResize || swapDrag) return;
     [...ptrs.keys()].forEach(capture);
     const [a, b] = [...ptrs.values()];
     pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y), zoom };
     panStart = null;
+    panMoved = true;
+    return;
   }
+  if (ptrs.size > 2) return;
+  const base = { sx: e.clientX, sy: e.clientY, tx0: tx, ty0: ty, pid: e.pointerId, th: moveTh(e) };
+  if (e.button === 1 || spaceHeld) { panStart = { x: e.clientX, y: e.clientY, tx, ty }; return; }
+  const spot = e.target.closest(".tspot");
+  const zEl = e.target.closest(".zone");
+  if (ui.mode === "plan" && ui.drawMask && !e.target.closest(".handle")) {
+    const el = document.createElement("div");
+    el.className = "zone mask drawing";
+    itemsEl.appendChild(el);
+    maskDraw = Object.assign({ p0: clientToPctRaw(e.clientX, e.clientY), el }, base);
+    return;
+  }
+  if (ui.mode === "plan" && e.shiftKey && !spot && !zEl) {
+    const el = document.createElement("div");
+    el.className = "marquee";
+    itemsEl.appendChild(el);
+    marquee = Object.assign({ p0: clientToPctRaw(e.clientX, e.clientY), el }, base);
+    return;
+  }
+  if (ui.mode === "plan" && !e.shiftKey && ui.multi.size > 1 && !e.target.closest(".handle")) {
+    const k = spot ? "t:" + spot.dataset.id : zEl ? "z:" + zEl.dataset.zid : null;
+    if (k && ui.multi.has(k)) {
+      const its = itemsOf([...ui.multi]).map((it) => ({ it, c: centerOf(it), el: itemsEl.querySelector(it.kind === "t" ? '.tspot[data-id="' + it.o.id + '"]' : '.zone[data-zid="' + it.o.id + '"]') }));
+      groupDrag = Object.assign({ its, anchor: its.find((x) => keyOf(x.it.kind, x.it.o.id) === k) }, base);
+      return;
+    }
+  }
+  if (ui.mode === "plan") {
+    const h = e.target.closest(".handle");
+    if (h && spot) {
+      const t = tableById(spot.dataset.id), rr = spot.getBoundingClientRect();
+      const ccx = rr.left + rr.width / 2, ccy = rr.top + rr.height / 2;
+      tableResize = Object.assign({ t, o: t.scale || 1, ccx, ccy, d0: Math.max(8, Math.hypot(e.clientX - ccx, e.clientY - ccy)) }, base);
+      return;
+    }
+    if (h && zEl) { const z = zoneById(zEl.dataset.zid); zoneResize = Object.assign({ z, el: zEl, ow: z.w, oh: z.h }, base); return; }
+    if (spot) { const t = tableById(spot.dataset.id); tableDrag = Object.assign({ t, el: spot, ox: t.x, oy: t.y }, base); return; }
+    if (zEl) { const z = zoneById(zEl.dataset.zid); zoneDrag = Object.assign({ z, el: zEl, ox: z.x, oy: z.y }, base); return; }
+  } else if (spot && e.pointerType !== "touch") {
+    // trocar convidados arrastando uma mesa sobre outra — só com mouse; no toque, arrastar move a vista
+    const t = tableById(spot.dataset.id);
+    swapDrag = Object.assign({ t, el: spot, ox: (t.x / 100) * FW(), oy: (t.y / 100) * FH(), target: null }, base);
+    return;
+  }
+  panStart = { x: e.clientX, y: e.clientY, tx, ty };
 });
 vp.addEventListener("pointermove", (e) => {
   if (!ptrs.has(e.pointerId)) return;
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   const s = scaleNow();
-  const startMove = (d, th) => { if (!panMoved && d > th) { panMoved = true; capture(e.pointerId); hideTip(); } return panMoved; };
+  if (ptrs.size === 2 && pinchStart) {
+    const [a, b] = [...ptrs.values()];
+    const r = vp.getBoundingClientRect();
+    const target = clamp(pinchStart.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / pinchStart.d), 0.6, 8);
+    zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, target / zoom);
+    return;
+  }
+  const D = groupDrag || marquee || maskDraw || tableDrag || swapDrag || tableResize || zoneResize || zoneDrag;
+  if (D && e.pointerId !== D.pid) return;
+  const startMove = (th) => {
+    if (!panMoved && Math.hypot(e.clientX - D.sx, e.clientY - D.sy) > th) {
+      panMoved = true; capture(e.pointerId); hideTip(); cancelLongPress(); vp.classList.add("dragging");
+    }
+    return panMoved;
+  };
+  // deslocamento lógico, descontando o quanto a vista andou sozinha na borda
+  const ddx = () => (e.clientX - D.sx - (tx - D.tx0)) / s, ddy = () => (e.clientY - D.sy - (ty - D.ty0)) / s;
   if (groupDrag) {
-    const dx = e.clientX - groupDrag.sx, dy = e.clientY - groupDrag.sy;
-    if (startMove(Math.hypot(dx, dy), 4)) {
+    if (startMove(D.th)) {
+      edgePan(e.clientX, e.clientY);
       const a = groupDrag.anchor.c;
-      const ax = snapPx((a.x / 100) * FW() + dx / s, e), ay = snapPx((a.y / 100) * FH() + dy / s, e);
-      const ddx = (ax / FW()) * 100 - a.x, ddy = (ay / FH()) * 100 - a.y;
+      const ax = snapPx((a.x / 100) * FW() + ddx(), e), ay = snapPx((a.y / 100) * FH() + ddy(), e);
+      const mx = (ax / FW()) * 100 - a.x, my = (ay / FH()) * 100 - a.y;
       for (const g of groupDrag.its) {
-        setCenter(g.it, g.c.x + ddx, g.c.y + ddy);
+        setCenter(g.it, g.c.x + mx, g.c.y + my);
         if (!g.el) continue;
         g.el.style.left = (g.it.o.x / 100) * FW() + "px";
         g.el.style.top = (g.it.o.y / 100) * FH() + "px";
@@ -347,15 +454,18 @@ vp.addEventListener("pointermove", (e) => {
     return;
   }
   if (marquee) {
-    if (startMove(Math.hypot(e.clientX - marquee.sx, e.clientY - marquee.sy), 3)) {
+    if (startMove(3)) {
       const p = clientToPctRaw(e.clientX, e.clientY), a = marquee.p0;
       marquee.p1 = p;
       Object.assign(marquee.el.style, { left: (Math.min(a.x, p.x) / 100) * FW() + "px", top: (Math.min(a.y, p.y) / 100) * FH() + "px", width: (Math.abs(p.x - a.x) / 100) * FW() + "px", height: (Math.abs(p.y - a.y) / 100) * FH() + "px" });
+      // prévia ao vivo do que vai ser selecionado
+      const x0 = Math.min(a.x, p.x), x1 = Math.max(a.x, p.x), y0 = Math.min(a.y, p.y), y1 = Math.max(a.y, p.y);
+      for (const t of state.tables) { const el = itemsEl.querySelector('.tspot[data-id="' + t.id + '"]'); if (el) el.classList.toggle("msel", t.x >= x0 && t.x <= x1 && t.y >= y0 && t.y <= y1); }
     }
     return;
   }
   if (maskDraw) {
-    if (startMove(Math.hypot(e.clientX - maskDraw.sx, e.clientY - maskDraw.sy), 3)) {
+    if (startMove(3)) {
       const p = clientToPctRaw(e.clientX, e.clientY), a = maskDraw.p0;
       const x0 = Math.min(a.x, p.x), y0 = Math.min(a.y, p.y);
       Object.assign(maskDraw.el.style, { left: (x0 / 100) * FW() + "px", top: (y0 / 100) * FH() + "px", width: (Math.abs(p.x - a.x) / 100) * FW() + "px", height: (Math.abs(p.y - a.y) / 100) * FH() + "px", background: ui.lastMaskFill || "#ffffff" });
@@ -364,10 +474,10 @@ vp.addEventListener("pointermove", (e) => {
     return;
   }
   if (tableDrag) {
-    const dx = e.clientX - tableDrag.sx, dy = e.clientY - tableDrag.sy;
-    if (startMove(Math.hypot(dx, dy), 4)) {
+    if (startMove(D.th)) {
+      edgePan(e.clientX, e.clientY);
       const t = tableDrag.t;
-      const px = snapPx((tableDrag.ox / 100) * FW() + dx / s, e), py = snapPx((tableDrag.oy / 100) * FH() + dy / s, e);
+      const px = snapPx((tableDrag.ox / 100) * FW() + ddx(), e), py = snapPx((tableDrag.oy / 100) * FH() + ddy(), e);
       t.x = clamp((px / FW()) * 100, 0.5, 99.5);
       t.y = clamp((py / FH()) * 100, 0.5, 99.5);
       tableDrag.el.style.left = (t.x / 100) * FW() + "px";
@@ -376,11 +486,11 @@ vp.addEventListener("pointermove", (e) => {
     return;
   }
   if (swapDrag) {
-    const dx = e.clientX - swapDrag.sx, dy = e.clientY - swapDrag.sy;
-    if (!panMoved && Math.hypot(dx, dy) > 6) { startMove(99, 0); swapDrag.el.classList.add("swapping"); }
+    if (!panMoved && startMove(D.th)) swapDrag.el.classList.add("swapping");
     if (!panMoved) return;
-    swapDrag.el.style.left = swapDrag.ox + dx / s + "px";
-    swapDrag.el.style.top = swapDrag.oy + dy / s + "px";
+    edgePan(e.clientX, e.clientY);
+    swapDrag.el.style.left = swapDrag.ox + ddx() + "px";
+    swapDrag.el.style.top = swapDrag.oy + ddy() + "px";
     const under = document.elementFromPoint(e.clientX, e.clientY);
     const tgt = under ? under.closest(".tspot") : null;
     if (swapDrag.target && swapDrag.target !== tgt) swapDrag.target.classList.remove("dragover");
@@ -389,20 +499,22 @@ vp.addEventListener("pointermove", (e) => {
     return;
   }
   if (tableResize) {
-    const dx = e.clientX - tableResize.sx, dy = e.clientY - tableResize.sy;
-    if (startMove(Math.hypot(dx, dy), 3)) {
-      const d = (Math.abs(dx) > Math.abs(dy) ? dx : dy) / s;
-      tableResize.t.scale = clamp(tableResize.o + d / 110, 0.5, 2.5);
+    if (startMove(3)) {
+      // escala pela distância ao centro: a alça fica embaixo do ponteiro
+      const d = Math.hypot(e.clientX - tableResize.ccx, e.clientY - tableResize.ccy);
+      const raw = tableResize.o * (d / tableResize.d0);
+      tableResize.t.scale = clamp(e.altKey ? raw : Math.round(raw * 20) / 20, 0.5, 2.5);
       refreshTspot(tableResize.t);
+      resizeTip(Math.round(tableResize.t.scale * 100) + "% · " + tableResize.t.cap + " lugares", e.clientX, e.clientY);
     }
     return;
   }
   if (zoneResize) {
-    const dx = e.clientX - zoneResize.sx, dy = e.clientY - zoneResize.sy;
-    if (startMove(Math.hypot(dx, dy), 3)) {
-      const z = zoneResize.z;
-      z.w = clamp(zoneResize.ow + (dx / s / FW()) * 100, 2, 100 - z.x);
-      z.h = clamp(zoneResize.oh + (dy / s / FH()) * 100, 2, 100 - z.y);
+    if (startMove(3)) {
+      const z = zoneResize.z, sn = isMask(z) ? (v) => v : snapPx;
+      const wpx = sn((zoneResize.ow / 100) * FW() + ddx(), e), hpx = sn((zoneResize.oh / 100) * FH() + ddy(), e);
+      z.w = clamp((wpx / FW()) * 100, 1, 100 - z.x);
+      z.h = clamp((hpx / FH()) * 100, 1, 100 - z.y);
       zoneResize.el.style.width = (z.w / 100) * FW() + "px";
       zoneResize.el.style.height = (z.h / 100) * FH() + "px";
       if (z.shape === "text") zoneResize.el.style.fontSize = clamp((z.h / 100) * FH() * 0.42, 11, 44) + "px";
@@ -410,11 +522,11 @@ vp.addEventListener("pointermove", (e) => {
     return;
   }
   if (zoneDrag) {
-    const dx = e.clientX - zoneDrag.sx, dy = e.clientY - zoneDrag.sy;
-    if (startMove(Math.hypot(dx, dy), 4)) {
+    if (startMove(D.th)) {
+      edgePan(e.clientX, e.clientY);
       const z = zoneDrag.z;
       const sn = isMask(z) ? (v) => v : snapPx; // cobertura encaixa livre, para casar com o desenho da planta
-      const px = sn((zoneDrag.ox / 100) * FW() + dx / s, e), py = sn((zoneDrag.oy / 100) * FH() + dy / s, e);
+      const px = sn((zoneDrag.ox / 100) * FW() + ddx(), e), py = sn((zoneDrag.oy / 100) * FH() + ddy(), e);
       z.x = clamp((px / FW()) * 100, 0, 100 - z.w);
       z.y = clamp((py / FH()) * 100, 0, 100 - z.h);
       zoneDrag.el.style.left = (z.x / 100) * FW() + "px";
@@ -422,25 +534,21 @@ vp.addEventListener("pointermove", (e) => {
     }
     return;
   }
-  if (ptrs.size === 2 && pinchStart) {
-    const [a, b] = [...ptrs.values()];
-    const r = vp.getBoundingClientRect();
-    const target = clamp(pinchStart.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / pinchStart.d), 0.6, 8);
-    zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, target / zoom);
-    panMoved = true;
-  } else if (panStart) {
+  if (panStart) {
     const dx = e.clientX - panStart.x, dy = e.clientY - panStart.y;
-    if (!panMoved && Math.hypot(dx, dy) > 5) { panMoved = true; vp.classList.add("panning"); capture(e.pointerId); hideTip(); }
+    if (!panMoved && Math.hypot(dx, dy) > moveTh(e)) { panMoved = true; vp.classList.add("panning"); capture(e.pointerId); hideTip(); cancelLongPress(); }
     if (panMoved) { tx = panStart.tx + dx; ty = panStart.ty + dy; applyView(); }
   }
 });
 function endPtr(e) {
+  if (!ptrs.has(e.pointerId)) return;
   ptrs.delete(e.pointerId);
   if (ptrs.size < 2) pinchStart = null;
   if (ptrs.size) return;
   panStart = null;
-  vp.classList.remove("panning");
+  vp.classList.remove("panning", "dragging");
   const moved = panMoved;
+  if (tableResize) hideTip();
   if (tableDrag) { tableDrag = null; if (moved) commit(); }
   if (tableResize) { tableResize = null; if (moved) commit(); }
   if (zoneDrag || zoneResize) { zoneDrag = zoneResize = null; if (moved) commit(); }
@@ -475,24 +583,23 @@ function endPtr(e) {
     if (moved) {
       const dst = tgtEl ? tableById(tgtEl.dataset.id) : null;
       if (dst && dst.id !== src.id) swapTables(src, dst);
-      else renderFloor();
+      else { renderFloor(); toast("Para mudar a mesa de lugar, entre em Editar planta (tecla E). Aqui, soltar sobre outra mesa troca os convidados.", { action: { label: "Editar planta", fn: () => setMode("plan") } }); }
     }
   }
 }
 vp.addEventListener("pointerup", endPtr);
-vp.addEventListener("pointercancel", endPtr);
+vp.addEventListener("pointercancel", (e) => { if (dragging()) floorCancel(); else endPtr(e); });
 vp.addEventListener("lostpointercapture", (e) => { if (ptrs.has(e.pointerId)) endPtr(e); });
 window.addEventListener("blur", () => {
-  if (!ptrs.size) return;
-  const moved = panMoved, editing = tableDrag || tableResize || zoneDrag || zoneResize || groupDrag;
-  floorCancel();
-  if (moved && editing) commit(); else renderFloor();
+  spaceHeld = false;
+  vp.classList.remove("panning");
+  if (ptrs.size) floorCancel();
 });
 vp.addEventListener("click", (e) => {
-  if (panMoved) { e.stopPropagation(); e.preventDefault(); panMoved = false; }
+  if (panMoved && e.detail !== 0) { e.stopPropagation(); e.preventDefault(); panMoved = false; }
 }, true);
 vp.addEventListener("dblclick", (e) => {
-  if (e.target.closest(".tspot, .zone, .fpanel, .abar, .zoomctl, .empty-floor, .edit-hint")) return;
+  if (e.target.closest(".tspot, .zone, .fpanel, .abar, .zoomctl, .empty-floor, .edit-hint, .steps")) return;
   const r = vp.getBoundingClientRect();
   zoomAt(e.clientX - r.left, e.clientY - r.top, 1.6, true);
 });
@@ -506,6 +613,7 @@ floorEl.addEventListener("click", (e) => {
     ui.openTableId = ui.openTableId === id && ui.mode === "seat" ? null : id;
     ui.openZoneId = null;
     renderFloor(); renderTablePanel(); renderZonePanel();
+    if (ui.openTableId) revealTable(ui.openTableId);
     if (e.detail === 0 && ui.openTableId) $("tpanel").focus();
     return;
   }
@@ -525,7 +633,9 @@ floorEl.addEventListener("click", (e) => {
   }
 });
 /* soltar um card de convidado (arrastar do mouse) sobre a mesa */
+const clearDragover = () => document.querySelectorAll(".dragover, .dropin").forEach((x) => x.classList.remove("dragover", "dropin"));
 floorEl.addEventListener("dragover", (e) => {
+  edgePan(e.clientX, e.clientY);
   const tEl = e.target.closest(".tspot");
   if (!tEl) return;
   e.preventDefault();
@@ -539,11 +649,33 @@ floorEl.addEventListener("dragleave", (e) => {
 });
 floorEl.addEventListener("drop", (e) => {
   const tEl = e.target.closest(".tspot");
+  clearDragover();
   if (!tEl) return;
   e.preventDefault();
   const gid = e.dataTransfer.getData("text/plain");
   if (gid && guestById(gid)) assign(gid, tEl.dataset.id);
 });
+document.addEventListener("dragend", () => { clearDragover(); ui.dragGuest = null; });
+/* mostra a mesa sem ela ficar escondida atrás do painel ou da barra do convidado */
+function occludedBottom() {
+  let b = 0;
+  if ($("abar").classList.contains("open")) b = Math.max(b, $("abar").offsetHeight + 24);
+  if (window.matchMedia("(max-width: 760px)").matches && $("tpanel").classList.contains("open")) b = Math.max(b, $("tpanel").offsetHeight + 16);
+  return b;
+}
+function revealTable(tid, opts) {
+  const t = tableById(tid);
+  if (!t) return;
+  const r = vp.getBoundingClientRect(), s = scaleNow();
+  const ob = occludedBottom();
+  const x = tx + (t.x / 100) * FW() * s, y = ty + (t.y / 100) * FH() * s;
+  const m = 60;
+  if (!(opts && opts.force) && x > m && x < r.width - m && y > m && y < r.height - ob - m) return; // já está à vista
+  tx += r.width / 2 - x;
+  ty += (r.height - ob) / 2 - y;
+  animView();
+  applyView();
+}
 
 /* ── Modo: organizar convidados × editar planta ── */
 function setMode(m) {
@@ -566,7 +698,7 @@ function updateHints() {
   $("lgHint").textContent = ui.mode === "plan"
     ? (touch ? "Arraste mesas e áreas · toque longo no salão adiciona ali" : "Arraste mesas e áreas · alça no canto redimensiona · botão direito no salão adiciona ali")
     : (touch ? "Toque num convidado e depois numa mesa · toque longo abre mais opções" : "Clique num convidado e depois numa mesa · botão direito abre mais opções");
-  $("editHint").querySelector("span").textContent = touch ? "Editando a planta — arraste para mover; toque longo para mais opções" : "Editando a planta — 1–4 cria mesa, A·O·V·T elementos, Shift+arrastar seleciona várias, botão direito: opções";
+  $("editHint").querySelector("span").textContent = touch ? "Editando a planta: arraste para mover · toque longo para mais opções" : "Editando a planta: arraste para mover · botões acima criam mesas e áreas · botão direito: mais opções";
 }
 
 /* ── Criar, mover e apagar mesas/áreas ── */
@@ -583,13 +715,24 @@ function setFloorHeight(h) {
   for (const z of state.zones) { z.y = clamp(z.y * k, 0, 98); z.h = clamp(z.h * k, 1, 100 - z.y); }
   state.floor.h = h;
 }
-function freeSpot(p) {
-  let { x, y } = p, tries = 0;
-  while (tries++ < 12 && state.tables.some((t) => Math.abs(t.x - x) < 3 && Math.abs(t.y - y) < 3)) { x += 4; y += 4; }
-  return { x: clamp(x, 3, 97), y: clamp(y, 3, 97) };
+function freeSpot(p, shape) {
+  const G = tableGeo({ shape: shape || "round", cap: DEFAULT_CAP[shape || "round"], scale: 1 });
+  const R = Math.max(G.W, G.H) / 2;
+  const px0 = (p.x / 100) * FW(), py0 = (p.y / 100) * FH();
+  const ok = (x, y) => x > R && x < FW() - R && y > R && y < FH() - R &&
+    !state.tables.some((t) => { const g = tableGeo(t); return Math.hypot((t.x / 100) * FW() - x, (t.y / 100) * FH() - y) < R + Math.max(g.W, g.H) / 2 + 6; });
+  for (let ring = 0; ring < 8; ring++) {
+    const n = ring ? 8 * ring : 1;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2, d = ring * (R * 2 + 8);
+      const x = clamp(px0 + Math.cos(a) * d, R, FW() - R), y = clamp(py0 + Math.sin(a) * d, R, FH() - R);
+      if (ok(x, y)) return { x: (x / FW()) * 100, y: (y / FH()) * 100 };
+    }
+  }
+  return { x: clamp(p.x, 3, 97), y: clamp(p.y, 3, 97) };
 }
 function addTable(shape, at) {
-  const f = freeSpot(at || viewCenterPct());
+  const f = freeSpot(at || viewCenterPct(), shape);
   const p = snapPct(f.x, f.y);
   const t = { id: uid("t"), label: nextTableLabel(), alias: "", shape, cap: DEFAULT_CAP[shape], x: p.x, y: p.y, scale: 1, rot: 0, notes: "" };
   state.tables.push(t);
@@ -611,7 +754,7 @@ function addZone(kind, at) {
   ui.openZoneId = z.id;
   ui.openTableId = null;
   commit();
-  if (!mask) setTimeout(() => { $("zpName").focus(); $("zpName").select(); }, 30);
+  if (!mask && finePointer()) setTimeout(() => { $("zpName").focus(); $("zpName").select(); }, 30);
 }
 function addManyTables({ qty, shape, cap, start, cols }) {
   const G = tableGeo({ shape, cap, scale: 1 });
@@ -1020,7 +1163,7 @@ async function setBackgroundFromFile(file) {
     if (ui.mode !== "plan") setMode("plan");
     commit();
     fitView();
-    toast(isPdf && r.pages > 1 ? "Planta aplicada (usada a página 1 de " + r.pages + ")" : "Planta aplicada — agora desenhe as mesas por cima");
+    toast((isPdf && r.pages > 1 ? "Planta aplicada (página 1 de " + r.pages + ")." : "Planta aplicada.") + " Se as mesas ficarem pequenas ou grandes demais para o desenho, ajuste em Fundo › Tamanho de todas as mesas.", { action: { label: "Ajustar", fn: () => openMenu(bgMenuItems, null, { anchor: $("btnBg") }) } });
   } catch (err) {
     console.error(err);
     toast("Não foi possível usar esse arquivo. Tente uma imagem PNG/JPG ou um PDF.", { err: true });
@@ -1048,7 +1191,10 @@ function bgMenuItems() {
     { label: "Remover imagem", icon: "trash", danger: true, disabled: !has, action: removeBackground },
     "-",
     { header: has ? "Proporção do salão (definida pela imagem)" : "Proporção do salão" },
-    ratio(3, 2, "Paisagem 3:2"), ratio(4, 3, "Paisagem 4:3"), ratio(16, 9, "Panorâmica 16:9"), ratio(1, 1, "Quadrada 1:1"), ratio(2, 3, "Retrato 2:3")
+    ratio(3, 2, "Paisagem 3:2"), ratio(4, 3, "Paisagem 4:3"), ratio(16, 9, "Panorâmica 16:9"), ratio(1, 1, "Quadrada 1:1"), ratio(2, 3, "Retrato 2:3"),
+    "-",
+    { label: "Tamanho de todas as mesas", icon: "round", desc: "Para casar com a escala do desenho da planta", kbd: Math.round((state.floor.tscale || 1) * 100) + "%",
+      sub: () => [40, 50, 60, 70, 80, 90, 100, 120, 140, 170, 200].map((v) => ({ label: v + "%", checked: Math.round((state.floor.tscale || 1) * 100) === v, action: () => { state.floor.tscale = v / 100; commit(); } })) }
   ];
 }
 $("fileBg").addEventListener("change", () => { const f = $("fileBg").files[0]; $("fileBg").value = ""; setBackgroundFromFile(f); });

@@ -63,6 +63,7 @@ const IMP_FIELDS = () => [
   { k: "table", l: "Mesa", syn: ["mesa", "table", "n mesa", "numero da mesa", "n da mesa"] },
   { k: "invited", l: "Convite enviado", syn: ["convite enviado", "convite", "enviado", "invited", "convite entregue"] },
   { k: "phone", l: "Telefone", syn: ["telefone", "celular", "whatsapp", "fone", "contato", "phone", "tel", "telefones"] },
+  { k: "diet", l: "Restrição alimentar", syn: ["restricao alimentar", "restricoes alimentares", "restricao", "restricoes", "dieta", "alimentacao", "cardapio", "alergia", "alergias", "menu"] },
   { k: "notes", l: "Observações", syn: ["observacoes", "observacao", "obs", "notas", "nota", "comentarios", "notes", "anotacoes"] },
   { k: "id", l: "Código", syn: ["codigo", "id", "cod"] }
 ];
@@ -241,7 +242,7 @@ function parsedImport() {
       status: m.status >= 0 ? parseStatus(cell(r, "status")) : "pend",
       table: tableRaw,
       invited: m.invited >= 0 ? parseYes(cell(r, "invited")) : null,
-      phone: cell(r, "phone"), notes: cell(r, "notes")
+      phone: cell(r, "phone"), diet: cell(r, "diet"), notes: cell(r, "notes")
     };
   });
 }
@@ -284,6 +285,7 @@ function renderImpPreview() {
     "</tbody></table>" + (list.length > show.length ? '<p class="hint" style="padding:6px 8px">… e mais ' + (list.length - show.length) + " linhas</p>" : "");
 }
 function runImport() {
+  askPersist();
   const list = parsedImport().filter((p) => !p.skip);
   if (!list.length) return;
   const mode = $("impMode").value;
@@ -331,13 +333,14 @@ function runImport() {
       if (m.invited >= 0 && p.invited !== null) ex.invited = p.invited;
       if (m.phone >= 0 && p.phone) ex.phone = p.phone;
       if (m.notes >= 0) ex.notes = p.notes;
+      if (m.diet >= 0) ex.diet = p.diet;
       if (m.table >= 0 && p.table) ex.table = t ? t.id : ex.table; // célula vazia não tira ninguém da mesa
       if (ex.status === "nao") ex.table = null;
       updated++;
     } else {
       state.guests.push(newGuest({
         name: p.name, adults: p.adults, kidsA: p.kidsA, kidsB: p.kidsB, side: p.side, group: groupFor(p.groupRaw, p.group),
-        status: p.status, invited: p.invited, phone: p.phone, notes: p.notes, table: p.status !== "nao" && t ? t.id : null
+        status: p.status, invited: p.invited, phone: p.phone, diet: p.diet, notes: p.notes, table: p.status !== "nao" && t ? t.id : null
       }));
       added++;
     }
@@ -391,18 +394,18 @@ $("impBody").addEventListener("change", (e) => {
 
 /* ── Modelo de planilha (as mesmas colunas da exportação — dá para ir e voltar) ── */
 function canonicalHeaders() {
-  return ["Nome", "Adultos", "Crianças " + (state.event.kidA || "0 a 5 anos"), "Crianças " + (state.event.kidB || "6 a 12 anos"), "Lado", "Grupo", "Situação", "Mesa", "Convite enviado", "Telefone", "Observações", "Código"];
+  return ["Nome", "Adultos", "Crianças " + (state.event.kidA || "0 a 5 anos"), "Crianças " + (state.event.kidB || "6 a 12 anos"), "Lado", "Grupo", "Situação", "Mesa", "Convite enviado", "Telefone", "Restrição alimentar", "Observações", "Código"];
 }
 function guestRow(g) {
   const t = g.table && tableById(g.table);
-  return [g.name, g.adults, g.kidsA, g.kidsB, sideShort(g.side), groupLabel(g.group), STATUS[g.status], t ? t.label : "", g.invited === null ? "" : g.invited ? "Sim" : "Não", g.phone, g.notes, g.id];
+  return [g.name, g.adults, g.kidsA, g.kidsB, sideShort(g.side), groupLabel(g.group), STATUS[g.status], t ? t.label : "", g.invited === null ? "" : g.invited ? "Sim" : "Não", g.phone, g.diet, g.notes, g.id];
 }
 function templateRows() {
   const A = state.event.hostA || "Lado A", B = state.event.hostB || "Lado B";
   return [canonicalHeaders(),
-    ["Maria e João Silva", 2, 1, 0, A, "Família", "Confirmado", "", "Sim", "(11) 98888-7777", "", ""],
-    ["Carla Souza", 1, 0, 0, B, "Amigos", "Pendente", "", "Não", "", "Vegetariana", ""],
-    ["Pedro, Ana e filhos", 2, 0, 2, "Dos dois", "Padrinhos", "Pendente", "5", "Sim", "", "", ""]];
+    ["Maria e João Silva", 2, 1, 0, A, "Família", "Confirmado", "", "Sim", "(11) 98888-7777", "", "Avó da noiva, cadeira de rodas", ""],
+    ["Carla Souza", 1, 0, 0, B, "Amigos", "Pendente", "", "Não", "", "Vegetariano", "", ""],
+    ["Pedro, Ana e filhos", 2, 0, 2, "Dos dois", "Padrinhos", "Pendente", "5", "Sim", "", "", "", ""]];
 }
 function helpRows() {
   const A = state.event.hostA || "Lado A", B = state.event.hostB || "Lado B";
@@ -417,7 +420,8 @@ function helpRows() {
     ["Mesa", "Número ou nome da mesa, se já souber", "Mesas que não existirem podem ser criadas"],
     ["Convite enviado", "Se o convite já foi entregue", "Sim / Não"],
     ["Telefone", "Para confirmar presença (abre o WhatsApp)", "Qualquer formato"],
-    ["Observações", "Restrição alimentar, acessibilidade, recados", "Texto livre"],
+    ["Restrição alimentar", "Vegetariano, vegano, sem glúten, alergias… — soma no resumo do buffet", "Escolha da lista ou escreva"],
+    ["Observações", "Acessibilidade, recados para o cerimonial", "Texto livre"],
     ["Código", "Preenchido pela ferramenta ao exportar; mantenha para atualizar a lista depois", "Não altere"]];
 }
 $("impTemplate").addEventListener("click", () => downloadTemplate("xlsx"));
@@ -430,9 +434,9 @@ function toCsv(rows) {
 }
 function guestsSorted() { return [...state.guests].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")); }
 function byTableRows() {
-  const rows = [["Mesa", "Apelido", "Convidado", "Lugares", "Adultos", "Crianças " + (state.event.kidA || "1"), "Crianças " + (state.event.kidB || "2"), "Lado", "Grupo", "Situação", "Observações"]];
-  for (const t of sortedTables()) for (const g of occupants(t.id)) rows.push([t.label, t.alias, g.name, seats(g), g.adults, g.kidsA, g.kidsB, sideShort(g.side), groupLabel(g.group), STATUS[g.status], g.notes]);
-  for (const g of state.guests.filter((x) => going(x) && !x.table)) rows.push([isStaff(g) ? "Equipe (sem mesa)" : "Sem mesa", "", g.name, seats(g), g.adults, g.kidsA, g.kidsB, sideShort(g.side), groupLabel(g.group), STATUS[g.status], g.notes]);
+  const rows = [["Mesa", "Apelido", "Convidado", "Lugares", "Adultos", "Crianças " + (state.event.kidA || "1"), "Crianças " + (state.event.kidB || "2"), "Lado", "Grupo", "Situação", "Restrição alimentar", "Observações"]];
+  for (const t of sortedTables()) for (const g of occupants(t.id)) rows.push([t.label, t.alias, g.name, seats(g), g.adults, g.kidsA, g.kidsB, sideShort(g.side), groupLabel(g.group), STATUS[g.status], g.diet, g.notes]);
+  for (const g of state.guests.filter((x) => going(x) && !x.table)) rows.push([isStaff(g) ? "Equipe (sem mesa)" : "Sem mesa", "", g.name, seats(g), g.adults, g.kidsA, g.kidsB, sideShort(g.side), groupLabel(g.group), STATUS[g.status], g.diet, g.notes]);
   return rows;
 }
 function tablesRows() {
@@ -466,13 +470,13 @@ function listsSheet() {
   const status = ["Confirmado", "Pendente", "Não vai"];
   const tables = sortedTables().map((t) => t.label);
   const yes = ["Sim", "Não"];
-  const n = Math.max(sides.length, groups.length, status.length, tables.length, 2);
-  const rows = [["Lado", "Grupo", "Situação", "Mesa", "Convite"]];
-  for (let i = 0; i < n; i++) rows.push([sides[i] || "", groups[i] || "", status[i] || "", tables[i] || "", yes[i] || ""]);
+  const n = Math.max(sides.length, groups.length, status.length, tables.length, DIETS.length);
+  const rows = [["Lado", "Grupo", "Situação", "Mesa", "Convite", "Restrição"]];
+  for (let i = 0; i < n; i++) rows.push([sides[i] || "", groups[i] || "", status[i] || "", tables[i] || "", yes[i] || "", DIETS[i] || ""]);
   const ref = (c, len) => "Listas!$" + c + "$2:$" + c + "$" + (len + 1);
-  return { sheet: { name: "Listas", rows, hidden: true }, v: { side: ref("A", sides.length), group: ref("B", groups.length), status: ref("C", 3), table: tables.length ? ref("D", tables.length) : null, yes: ref("E", 2) } };
+  return { sheet: { name: "Listas", rows, hidden: true }, v: { side: ref("A", sides.length), group: ref("B", groups.length), status: ref("C", 3), table: tables.length ? ref("D", tables.length) : null, yes: ref("E", 2), diet: ref("F", DIETS.length) } };
 }
-const GUEST_WIDTHS = [34, 9, 16, 16, 16, 18, 13, 9, 15, 18, 36, 14];
+const GUEST_WIDTHS = [34, 9, 16, 16, 16, 18, 13, 9, 15, 18, 22, 36, 14];
 function guestSheet(rows, L) {
   return {
     name: "Convidados", rows, header: true, freeze: true, filter: true, widths: GUEST_WIDTHS,
@@ -484,7 +488,8 @@ function guestSheet(rows, L) {
       { col: 5, list: L.group, loose: true, title: "Grupo", prompt: "Escolha da lista ou digite um grupo novo" },
       { col: 6, list: L.status, title: "Situação", prompt: "Confirmado, Pendente ou Não vai" },
       L.table ? { col: 7, list: L.table, loose: true, title: "Mesa", prompt: "Número da mesa (pode deixar em branco)" } : null,
-      { col: 8, list: L.yes, title: "Convite enviado", prompt: "Sim ou Não" }
+      { col: 8, list: L.yes, title: "Convite enviado", prompt: "Sim ou Não" },
+      { col: 10, list: L.diet, loose: true, title: "Restrição alimentar", prompt: "Escolha da lista ou escreva (ex.: alergia a nozes)" }
     ]
   };
 }
@@ -510,12 +515,13 @@ async function downloadTemplate(kind) {
   toast("Modelo baixado — preencha a aba Convidados e importe de volta");
 }
 async function exportXlsx() {
+  markExported();
   try {
     const L = listsSheet();
     const tbl = (name, rows, widths) => ({ name, rows, widths, header: true, freeze: true, filter: true });
     const blob = XW.build([
       guestSheet([canonicalHeaders()].concat(guestsSorted().map(guestRow)), L.v),
-      tbl("Por mesa", byTableRows(), [12, 22, 34, 9, 9, 14, 14, 16, 18, 13, 36]),
+      tbl("Por mesa", byTableRows(), [12, 22, 34, 9, 9, 14, 14, 16, 18, 13, 22, 36]),
       tbl("Mesas", tablesRows(), [10, 22, 12, 9, 10, 8, 90]),
       tbl("Encontre sua mesa", findRows(), [40, 26]),
       Object.assign(tbl("Resumo", summaryRows(), [32, 12]), { filter: false }),
@@ -526,11 +532,13 @@ async function exportXlsx() {
   } catch (err) { console.error(err); toast("Não foi possível gerar o Excel", { err: true }); }
 }
 function exportCsv(kind) {
+  markExported();
   if (kind === "mesas") download(fileBase() + "-por-mesa.csv", toCsv(byTableRows()), "text/csv;charset=utf-8");
   else download(fileBase() + "-convidados.csv", toCsv([canonicalHeaders()].concat(guestsSorted().map(guestRow))), "text/csv;charset=utf-8");
   toast("CSV gerado (abre no Excel e no Google Planilhas)");
 }
 async function copyByTableText() {
+  markExported();
   const lines = ["*" + displayTitle() + "*" + (eventSubtitle() ? " — " + eventSubtitle() : ""), ""];
   for (const t of sortedTables()) {
     const occ = occupants(t.id);
@@ -609,14 +617,18 @@ async function exportPng() {
 }
 
 /* ── Impressão / PDF ── */
-const PRINT_TITLES = { mesas: "Lista por mesa", alfa: "Encontre sua mesa", recepcao: "Lista de presença", placas: "Placas das mesas", planta: "Planta do salão", resumo: "Resumo para o buffet" };
+const PRINT_TITLES = { mesas: "Lista por mesa", alfa: "Encontre sua mesa", recepcao: "Lista de presença", placas: "Placas das mesas", cartoes: "Cartões de lugar", planta: "Planta do salão", resumo: "Resumo para o buffet" };
+function markExported() { if (state && !state.meta.didExport) { state.meta.didExport = true; persist(state); renderSteps(); } }
 function printDoc(kind) {
+  markExported();
   const pv = $("printView");
   const head = '<div class="phead"><div class="ptitle">' + esc(displayTitle()) + '</div><div class="pkind">' + esc(PRINT_TITLES[kind]) + '</div><div class="psub">' +
     esc([eventSubtitle(), "impresso em " + new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date())].filter(Boolean).join(" · ")) + "</div></div>";
   let body = "", landscape = false;
+  // placas e cartões vão para as mesas: sem cabeçalho; a lista da entrada leva só o título
+  const headFinal = kind === "placas" || kind === "cartoes" ? "" : kind === "alfa" ? '<div class="phead"><div class="ptitle">' + esc(displayTitle()) + '</div><div class="pkind">Encontre sua mesa</div></div>' : head;
   const kidsTxt = (g) => (totalKids(g) ? ' <span class="pk">(' + esc(personDetail(g)) + ")</span>" : "");
-  const noteTxt = (g) => (g.notes ? ' <span class="pnote">— ' + esc(g.notes) + "</span>" : "");
+  const noteTxt = (g) => (g.diet ? ' <b class="pdiet">[' + esc(g.diet) + "]</b>" : "") + (g.notes ? ' <span class="pnote">— ' + esc(g.notes) + "</span>" : "");
   const sumP = (arr) => arr.reduce((n, g) => n + persons(g), 0);
   const going_ = state.guests.filter(going);
   if (kind === "mesas") {
@@ -654,17 +666,21 @@ function printDoc(kind) {
       return letter + '<div class="alpha-row"><span>' + esc(x.n) + (x.ref ? ' <span class="pk">(com ' + esc(x.ref) + ")</span>" : "") + "</span><b>" + esc(tableName(x.t)) + "</b></div>";
     }).join("") + "</div>";
   } else if (kind === "recepcao") {
-    body = '<table class="psum"><thead><tr><th style="width:28px"></th><th>Nome</th><th class="n">Pessoas</th><th>Crianças</th><th>Mesa</th><th>Situação</th><th>Observações</th></tr></thead><tbody>' +
+    body = '<table class="psum"><thead><tr><th style="width:28px"></th><th>Nome</th><th class="n">Pessoas</th><th>Crianças</th><th>Mesa</th><th>Situação</th><th>Restrição</th><th>Observações</th></tr></thead><tbody>' +
       guestsSorted().filter((g) => going(g) && !isStaff(g)).map((g) => {
         const k = [g.kidsA ? g.kidsA + " (" + (state.event.kidA || "faixa 1") + ")" : "", g.kidsB ? g.kidsB + " (" + (state.event.kidB || "faixa 2") + ")" : ""].filter(Boolean).join(", ");
-        return "<tr><td>☐</td><td>" + esc(g.name) + '</td><td class="n">' + persons(g) + "</td><td>" + esc(k) + "</td><td>" + esc(g.table ? tableName(tableById(g.table)) : "—") + "</td><td>" + (g.status === "ok" ? "Confirmado" : "<b>Pendente</b>") + "</td><td>" + esc(g.notes) + "</td></tr>";
+        return "<tr><td>☐</td><td>" + esc(g.name) + '</td><td class="n">' + persons(g) + "</td><td>" + esc(k) + "</td><td>" + esc(g.table ? tableName(tableById(g.table)) : "—") + "</td><td>" + (g.status === "ok" ? "Confirmado" : "<b>Pendente</b>") + "</td><td>" + esc(g.diet) + "</td><td>" + esc(g.notes) + "</td></tr>";
       }).join("") + "</tbody></table>";
   } else if (kind === "placas") {
-    body = '<div class="placas">' + sortedTables().map((t) => {
+    const withPeople = sortedTables().filter((t) => occupants(t.id).length);
+    body = '<div class="placas">' + (withPeople.length ? withPeople : sortedTables()).map((t) => {
       const occ = occupants(t.id);
       return '<div class="placa"><div class="pt">' + esc(displayTitle()) + '</div><div class="pa">' + (isNumLabel(t.label) ? "Mesa" : "") + '</div><div class="pn">' + esc(t.label) + "</div>" + (t.alias ? '<div class="pa">' + esc(t.alias) + "</div>" : "") +
         "<ul>" + occ.map((g) => "<li>" + esc(g.name) + "</li>").join("") + "</ul></div>";
     }).join("") + "</div>";
+  } else if (kind === "cartoes") {
+    body = '<div class="cartoes">' + sortedTables().flatMap((t) => occupants(t.id).filter((g) => !isStaff(g)).map((g) =>
+      '<div class="cartao"><div class="cn">' + esc(g.name) + '</div><div class="cm">' + esc(tableName(t)) + "</div></div>")).join("") + "</div>";
   } else if (kind === "planta") {
     landscape = FW() >= FH();
     body = '<div class="pplan">' + floorSvg({ names: true }) + "</div>";
@@ -676,18 +692,20 @@ function printDoc(kind) {
     };
     const guestsGo = going_.filter((g) => !isStaff(g));
     const staffGo = going_.filter(isStaff);
-    const noted = guestsSorted().filter((g) => going(g) && g.notes);
+    const noted = guestsSorted().filter((g) => going(g) && (g.notes || g.diet));
+    const diets = dietCounts();
     body = '<table class="psum"><tbody>' + summaryRows().slice(1).map((r, i) => "<tr" + (i === 3 ? ' class="tot"' : "") + "><td>" + esc(r[0]) + '</td><td class="n">' + nf.format(r[1]) + "</td></tr>").join("") + "</tbody></table>" +
       '<table class="psum"><thead><tr><th>Mesa</th><th class="n">Adultos</th><th class="n">' + esc(state.event.kidA || "Crianças 1") + '</th><th class="n">' + esc(state.event.kidB || "Crianças 2") + '</th><th class="n">Total</th><th class="n">Pendentes</th></tr></thead><tbody>' +
       sortedTables().map((t) => row(esc(tableFull(t)), occupants(t.id))).join("") +
       (guestsGo.some((g) => !g.table) ? row("<i>Convidados sem mesa</i>", guestsGo.filter((g) => !g.table)) : "") +
       (staffGo.length ? row("<i>Equipe do evento</i>", staffGo) : "") +
       row("<b>Total</b>", going_, "tot") + "</tbody></table>" +
-      (noted.length ? '<h2 style="margin-top:6px">Observações dos convidados</h2><table class="psum"><thead><tr><th>Nome</th><th>Mesa</th><th>Observação</th></tr></thead><tbody>' +
-        noted.map((g) => "<tr><td>" + esc(g.name) + "</td><td>" + esc(g.table ? tableName(tableById(g.table)) : "—") + "</td><td>" + esc(g.notes) + "</td></tr>").join("") + "</tbody></table>" : "");
+      (diets.length ? '<h2 style="margin-top:6px">Restrições alimentares</h2><table class="psum"><tbody>' + diets.map(([k, n]) => "<tr><td>" + esc(k) + '</td><td class="n">' + plural(n, "pessoa", "pessoas") + "</td></tr>").join("") + "</tbody></table>" : "") +
+      (noted.length ? '<h2 style="margin-top:6px">Restrições e observações por convidado</h2><table class="psum"><thead><tr><th>Nome</th><th>Mesa</th><th>Restrição</th><th>Observação</th></tr></thead><tbody>' +
+        noted.map((g) => "<tr><td>" + esc(g.name) + "</td><td>" + esc(g.table ? tableName(tableById(g.table)) : "—") + "</td><td>" + esc(g.diet) + "</td><td>" + esc(g.notes) + "</td></tr>").join("") + "</tbody></table>" : "");
   }
   pv.className = landscape ? "landscape" : "";
-  pv.innerHTML = (landscape ? "<style>@page { size: A4 landscape; margin: 10mm; }</style>" : "") + head + body;
+  pv.innerHTML = (landscape ? "<style>@page { size: A4 landscape; margin: 10mm; }</style>" : "") + headFinal + body;
   setTimeout(() => window.print(), 60);
 }
 
@@ -731,7 +749,10 @@ async function exportGuestPage() {
 }
 
 /* ── Backup completo (.json) ── */
+/* pede ao navegador para não apagar os dados sozinho (Safari apaga após dias sem uso) */
+function askPersist() { try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then((p) => p || navigator.storage.persist()); } catch (e) { /* ok */ } }
 async function saveBackup() {
+  askPersist();
   const data = JSON.parse(JSON.stringify(state));
   data.app = "mapa-de-mesas";
   const bg = state.floor.bg ? await idbGet(bgKey(state)) : null;

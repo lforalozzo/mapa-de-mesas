@@ -54,9 +54,16 @@ function buildSide(k) {
     if (!c) return;
     e.dataTransfer.setData("text/plain", c.dataset.id);
     e.dataTransfer.effectAllowed = "move";
+    ui.dragGuest = c.dataset.id;
     hideTip();
   });
-  el.addEventListener("dragover", (e) => { if ([...e.dataTransfer.types].includes("text/plain")) e.preventDefault(); });
+  el.addEventListener("dragover", (e) => {
+    if (![...e.dataTransfer.types].includes("text/plain")) return;
+    e.preventDefault();
+    const g = ui.dragGuest && guestById(ui.dragGuest);
+    el.classList.toggle("dropin", !!(g && g.table));
+  });
+  el.addEventListener("dragleave", (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove("dropin"); });
   el.addEventListener("drop", (e) => {
     e.preventDefault();
     const g = guestById(e.dataTransfer.getData("text/plain"));
@@ -80,9 +87,10 @@ function guestCard(g) {
   chips.push('<span class="chip">' + esc(groupLabel(g.group)) + "</span>");
   if (totalKids(g)) chips.push('<span class="chip kid">' + plural(totalKids(g), "criança", "crianças") + "</span>");
   if (going(g) && g.invited === false && !isStaff(g) && g.group !== "noivos") chips.push('<span class="chip">convite não enviado</span>');
+  if (g.diet) chips.push('<span class="chip diet">' + esc(g.diet.toLowerCase()) + "</span>");
   if (g.notes) chips.push('<span class="chip note">nota</span>');
   const n = persons(g);
-  return '<div class="gcard st-' + g.status + (g.id === ui.selectedId ? " sel" : "") + '" data-id="' + g.id + '" role="button" tabindex="0" aria-pressed="' + (g.id === ui.selectedId) + '" aria-label="' + esc(g.name + ", " + plural(n, "pessoa", "pessoas") + ", " + STATUS[g.status].toLowerCase() + ", " + (t ? tableName(t) : going(g) ? "sem mesa" : "não vai")) + '" draggable="' + (going(g) && finePointer() ? "true" : "false") + '">' +
+  return '<div class="gcard st-' + g.status + (g.id === ui.selectedId ? " sel" : "") + '" data-id="' + g.id + '" role="button" tabindex="0" aria-pressed="' + (g.id === ui.selectedId) + '" aria-label="' + esc(g.name + ", " + plural(n, "pessoa", "pessoas") + ", " + STATUS[g.status].toLowerCase() + (going(g) ? ", " + (t ? tableName(t) : "sem mesa") : "")) + '" draggable="' + (going(g) && finePointer() ? "true" : "false") + '">' +
     '<i class="stdot"></i><div class="gmain"><div class="gname">' + esc(g.name) + '</div><div class="gmeta">' + chips.join("") + "</div></div>" +
     '<div class="gseats"><div class="n">' + n + '</div><div class="d">' + (n === 1 ? "pessoa" : "pessoas") + "</div></div></div>";
 }
@@ -160,8 +168,8 @@ function selectGuest(id, opts) {
   const g = ui.selectedId && guestById(ui.selectedId);
   if (g && ui.mode === "plan") setMode("seat");
   renderSides(); renderFloor(); renderTablePanel(); renderActionBar();
-  if (g && isNarrow()) { sidesOpen.a = sidesOpen.b = false; renderSides(); }
-  if (g && g.table && !opts.noFly) centerOn(g.table, Math.max(zoom, 1.5));
+  if (g && isNarrow()) { ui.reopenSide = sidesOpen.a ? "a" : sidesOpen.b ? "b" : null; sidesOpen.a = sidesOpen.b = false; renderSides(); }
+  if (g && g.table && !opts.noFly) requestAnimationFrame(() => revealTable(g.table)); // só move a vista se a mesa estiver escondida
 }
 function assign(gid, tid) {
   const g = guestById(gid), t = tableById(tid);
@@ -171,7 +179,7 @@ function assign(gid, tid) {
   const after = occSeats(tid) + seats(g);
   if (after > t.cap && !assign.confirmed) {
     // estourar a lotação nunca acontece por um toque distraído
-    ask(tableName(t) + " vai ficar lotada", "Com " + g.name + " ela fica com " + after + " pessoas para " + t.cap + " lugares. Sentar mesmo assim?", { ok: "Sentar mesmo assim" })
+    ask(tableName(t) + " vai ficar lotada", "Com " + g.name + " ela fica com " + after + " pessoas para " + t.cap + " lugares. Sentar mesmo assim?", { ok: "Sentar mesmo assim", focusCancel: true })
       .then((yes) => { if (yes) { assign.confirmed = true; assign(gid, tid); assign.confirmed = false; } });
     return;
   }
@@ -180,6 +188,7 @@ function assign(gid, tid) {
   commit();
   const now = occSeats(tid);
   toast(g.name + " → " + tableName(t) + " (" + now + "/" + t.cap + ")" + (now > t.cap ? " — ficou lotada" : ""), { err: now > t.cap, action: { label: "Desfazer", fn: undo } });
+  if (isNarrow() && ui.reopenSide) { const k = ui.reopenSide; ui.reopenSide = null; setTimeout(() => toggleSide(k, true), 350); }
 }
 function unassign(gid) {
   const g = guestById(gid);
@@ -190,9 +199,11 @@ function unassign(gid) {
   commit();
   toast(g.name + " saiu da " + prev, { action: { label: "Desfazer", fn: undo } });
 }
-function swapTables(a, b) {
+async function swapTables(a, b) {
   const ga = occupants(a.id), gb = occupants(b.id);
   if (!ga.length && !gb.length) { renderFloor(); return; }
+  const sa = ga.reduce((n, g) => n + seats(g), 0), sb = gb.reduce((n, g) => n + seats(g), 0);
+  if ((sa > b.cap || sb > a.cap) && !(await ask("Uma das mesas vai ficar lotada", tableName(a) + " fica com " + sb + "/" + a.cap + " e " + tableName(b) + " com " + sa + "/" + b.cap + ". Trocar mesmo assim?", { ok: "Trocar mesmo assim", focusCancel: true }))) { renderFloor(); return; }
   ga.forEach((g) => { g.table = b.id; });
   gb.forEach((g) => { g.table = a.id; });
   commit();
@@ -204,7 +215,7 @@ function setStatus(g, st) {
   g.status = st;
   if (st === "nao") g.table = null;
   commit();
-  toast(g.name + ": " + STATUS[st].toLowerCase());
+  toast(g.name + ": " + STATUS[st].toLowerCase(), { action: { label: "Desfazer", fn: undo } });
 }
 function deleteGuest(g) {
   state.guests = state.guests.filter((x) => x.id !== g.id);
@@ -218,6 +229,13 @@ function waLink(p) {
   let d = phoneDigits(p);
   if (d.length >= 10 && d.length <= 11) d = "55" + d;
   return "https://wa.me/" + d;
+}
+function rsvpMessage(g) {
+  const first = shortName(g.name).split(" e ")[0].split(" ")[0];
+  const quando = dateLong() ? " no dia " + dateLong() + (state.event.time ? ", às " + state.event.time : "") : "";
+  const onde = state.event.venue ? ", em " + state.event.venue : "";
+  return "Olá, " + first + "! Estamos organizando as mesas do casamento de " + displayTitle() + quando + onde + ". Você confirma presença? " +
+    (persons(g) > 1 ? "Contamos com " + persons(g) + " pessoas no seu convite. " : "") + "Responda SIM ou NÃO, por favor. Obrigado!";
 }
 function tablePickItems(g) {
   if (!state.tables.length) return [{ label: "Nenhuma mesa criada ainda", disabled: true }];
@@ -242,6 +260,7 @@ function guestMenuItems(g) {
   if (phoneDigits(g.phone).length >= 8) {
     items.push("-");
     items.push({ label: "Conversar no WhatsApp", icon: "chat", desc: g.phone, action: () => window.open(waLink(g.phone), "_blank", "noopener") });
+    if (g.status === "pend") items.push({ label: "Pedir confirmação no WhatsApp", icon: "chat", desc: "Abre a conversa com uma mensagem pronta", action: () => window.open(waLink(g.phone) + "?text=" + encodeURIComponent(rsvpMessage(g)), "_blank", "noopener") });
     items.push({ label: "Ligar", icon: "phone", action: () => { location.href = "tel:" + phoneDigits(g.phone); } });
   }
   items.push("-");
@@ -259,6 +278,7 @@ function guestTip(g) {
     ["Convite", g.invited ? "enviado" : g.invited === false ? "não enviado" : "não informado"]
   ];
   if (g.phone) rows.push(["Telefone", g.phone]);
+  if (g.diet) rows.push(["Restrição", g.diet]);
   return '<div class="tt"><i class="stdot ' + g.status + '" style="width:8px;height:8px;border-radius:9999px;display:inline-block"></i>' + esc(g.name) + "</div>" +
     '<div class="ts">' + esc(personDetail(g)) + " · " + plural(seats(g), "lugar", "lugares") + "</div>" +
     '<div class="tl">' + rows.map(([a, b]) => "<span>" + esc(a) + "</span><span>" + esc(b) + "</span>").join("") + "</div>" +
@@ -321,18 +341,34 @@ function renderActionBar() {
   const verb = finePointer() ? "Clique" : "Toque";
   $("abHint").textContent = t ? verb + " noutra mesa para mudar " + shortName(g.name) + " de lugar" : verb + " numa mesa do salão para sentar" + (finePointer() ? " — ou arraste o card até ela" : "");
   $("abUnseat").hidden = !g.table;
+  $("abGoing").lastChild.textContent = going(g) ? "Não vai" : "Vai sim";
 }
 $("abClose").addEventListener("click", () => { ui.selectedId = null; renderAll(); });
 $("abEdit").addEventListener("click", () => openGuestModal(ui.selectedId));
 $("abUnseat").addEventListener("click", () => unassign(ui.selectedId));
+$("abGoing").addEventListener("click", () => { const g = guestById(ui.selectedId); if (g) { ui.selectedId = null; setStatus(g, going(g) ? "nao" : "pend"); } });
 $("abMore").addEventListener("click", (e) => { const g = guestById(ui.selectedId); if (g) openMenu(() => guestMenuItems(g), null, { anchor: e.currentTarget, align: "end" }); });
 $("abChips").addEventListener("click", (e) => { if (e.target.closest(".chip.note")) openGuestModal(ui.selectedId); });
 
 /* ── Busca do salão ── */
-$("q").addEventListener("input", (e) => { ui.q = e.target.value; renderSides(); renderFloor(); });
+let qTimer = null;
+$("q").addEventListener("input", (e) => {
+  ui.q = e.target.value; renderSides(); renderFloor();
+  clearTimeout(qTimer);
+  if (!isNarrow()) return;
+  qTimer = setTimeout(() => {
+    const q = norm(ui.q);
+    if (q.length < 2) { closeMenu(); return; }
+    const found = state.guests.filter((x) => textMatch(x.name, q)).slice(0, 12);
+    if (!found.length) { closeMenu(); return; }
+    if (menuOpen()) closeMenu();
+    openMenu(found.map((g) => ({ label: g.name, kbd: g.table ? tableName(tableById(g.table)) : going(g) ? "sem mesa" : "não vai", action: () => { $("q").blur(); showGuest(g); } })), null, { anchor: $("q").closest(".search") });
+  }, 280);
+});
 $("q").addEventListener("keydown", (e) => {
   if (e.key === "Escape") { e.target.value = ""; ui.q = ""; renderSides(); renderFloor(); e.target.blur(); return; }
   if (e.key !== "Enter") return;
+  e.preventDefault();
   const q = norm(ui.q);
   if (!q) return;
   const tq = q.replace(/^mesa\s+/, "");
@@ -358,7 +394,14 @@ function showGuest(g) {
 }
 
 /* ── Cadastro de convidado ── */
-let editingId = null;
+let editingId = null, gDirty = "";
+const guestFormValues = () => ["fNome", "fAd", "fKA", "fKB", "fLado", "fGrupo", "fSit", "fMesa", "fInv", "fTel", "fDiet", "fNotes"].map((id) => ($(id).type === "checkbox" ? $(id).checked : $(id).value));
+/* Esc/voltar com algo digitado pergunta antes de descartar */
+$("gdlg").addEventListener("cancel", async (e) => {
+  if (JSON.stringify(guestFormValues()) === gDirty) return;
+  e.preventDefault();
+  if (await ask("Descartar o que foi digitado?", "As alterações neste convidado ainda não foram salvas.", { ok: "Descartar", cancel: "Continuar editando", danger: true })) { gDirty = JSON.stringify(guestFormValues()); $("gdlg").close(); }
+});
 function openGuestModal(id, side) {
   editingId = id || null;
   const g = id ? guestById(id) : null;
@@ -385,8 +428,10 @@ function openGuestModal(id, side) {
   $("gdlg").dataset.side = side || "";
   $("fTel").value = g ? g.phone : "";
   $("fNotes").value = g ? g.notes : "";
+  $("fDiet").value = g ? g.diet || "" : "";
   $("gdlg").showModal();
-  setTimeout(() => $("fNome").focus(), 10);
+  if (finePointer()) setTimeout(() => $("fNome").focus(), 10);
+  gDirty = JSON.stringify(guestFormValues());
 }
 $("gform").addEventListener("submit", (e) => {
   const name = $("fNome").value.trim();
@@ -404,6 +449,7 @@ $("gform").addEventListener("submit", (e) => {
   g.invited = $("fInv").checked;
   g.phone = $("fTel").value.trim();
   g.notes = $("fNotes").value.trim();
+  g.diet = $("fDiet").value.trim();
   g.table = g.status === "nao" ? null : $("fMesa").value || null;
   ui.selectedId = null;
   commit();
